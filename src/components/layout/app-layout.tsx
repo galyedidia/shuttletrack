@@ -51,7 +51,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider defaultOpen={false}>
-      <Sidebar side="right" collapsible="offcanvas" className="border-l">
+      <Sidebar side="right" collapsible="offcanvas" className="border-l bg-background">
         <SidebarHeader>
           <Button variant="ghost" className="h-10 w-full justify-start px-2">
             <AppLogo className="h-7 w-7 text-primary" />
@@ -66,6 +66,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <SidebarMenuButton
                     asChild
                     isActive={pathname === item.href}
+                    tooltip={item.label}
                   >
                     <a>
                       <item.icon />

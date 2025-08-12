@@ -172,14 +172,16 @@ const Sidebar = React.forwardRef<
     {
       side = "left",
       variant = "sidebar",
-      collapsible = "offcanvas",
+      collapsible: collapsibleProp = "offcanvas",
       className,
       children,
       ...props
     },
     ref
   ) => {
-    const { isMobile, state, open, openMobile, setOpenMobile } = useSidebar()
+    const { isMobile, state, open, setOpen, openMobile, setOpenMobile } =
+      useSidebar()
+    const collapsible = "offcanvas"
 
     if (collapsible === "none") {
       return (
@@ -196,16 +198,25 @@ const Sidebar = React.forwardRef<
       )
     }
 
-    if (isMobile || collapsible === 'offcanvas') {
+    if (collapsible === "offcanvas") {
       return (
-        <Sheet open={isMobile ? openMobile : open} onOpenChange={isMobile ? setOpenMobile : (o) => useSidebar().setOpen(o)} {...props}>
+        <Sheet
+          open={isMobile ? openMobile : open}
+          onOpenChange={isMobile ? setOpenMobile : setOpen}
+          {...props}
+        >
           <SheetContent
             data-sidebar="sidebar"
-            data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+            data-mobile={isMobile}
+            className={cn(
+              "w-[--sidebar-width] bg-background p-0 text-sidebar-foreground [&>button]:hidden",
+              className
+            )}
             style={
               {
-                "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+                "--sidebar-width": isMobile
+                  ? SIDEBAR_WIDTH_MOBILE
+                  : SIDEBAR_WIDTH,
               } as React.CSSProperties
             }
             side={side}
@@ -219,7 +230,7 @@ const Sidebar = React.forwardRef<
     return (
       <div
         ref={ref}
-        className="group peer hidden md:block text-sidebar-foreground"
+        className="group peer hidden text-sidebar-foreground md:block"
         data-state={state}
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
