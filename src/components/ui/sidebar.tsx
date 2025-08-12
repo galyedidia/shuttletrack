@@ -96,7 +96,9 @@ const SidebarProvider = React.forwardRef<
         setOpenMobile((open) => !open)
         return
       }
-    }, [isMobile, setOpenMobile])
+
+      setOpen(!open)
+    }, [isMobile, setOpenMobile, open, setOpen])
 
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
@@ -177,7 +179,7 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const { isMobile, state, open, openMobile, setOpenMobile } = useSidebar()
 
     if (collapsible === "none") {
       return (
@@ -194,9 +196,9 @@ const Sidebar = React.forwardRef<
       )
     }
 
-    if (isMobile) {
+    if (isMobile || collapsible === 'offcanvas') {
       return (
-        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+        <Sheet open={isMobile ? openMobile : open} onOpenChange={isMobile ? setOpenMobile : (o) => useSidebar().setOpen(o)} {...props}>
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
@@ -585,7 +587,7 @@ const SidebarMenuButton = React.forwardRef<
         <TooltipContent
           side="right"
           align="center"
-          hidden={true}
+          hidden={isMobile || state === "expanded"}
           {...tooltip}
         />
       </Tooltip>
