@@ -55,7 +55,8 @@ export default function AttendancePage() {
     const foundSession = mockSessions.find(s => s.id === sessionId);
     if (foundSession) {
       setSession(foundSession);
-      setAttendance(foundSession.attendance || {});
+      // Deep copy attendance to avoid direct mutation of mock data until save
+      setAttendance(JSON.parse(JSON.stringify(foundSession.attendance || {})));
     }
   }, [sessionId]);
 
@@ -101,7 +102,12 @@ export default function AttendancePage() {
   };
 
   const handleSave = () => {
-    // Here you would save the 'attendance' state to your backend
+    // Find the session in our mock DB and update it
+    const sessionIndex = mockSessions.findIndex(s => s.id === sessionId);
+    if (sessionIndex !== -1) {
+      mockSessions[sessionIndex].attendance = attendance;
+    }
+
     console.log("Saving attendance for session:", sessionId, attendance);
     toast({
       title: "הנוכחות נשמרה בהצלחה",
