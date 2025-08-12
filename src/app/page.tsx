@@ -17,7 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import {
   Dialog,
   DialogContent,
@@ -32,14 +37,23 @@ import { groups, trainingSessions } from "@/lib/data";
 import type { TrainingSession } from '@/types';
 import { PlusCircle, Calendar as CalendarIcon, Users, Edit } from "lucide-react";
 import { useRouter } from 'next/navigation';
+import { format } from "date-fns";
 
 export default function SessionsDashboardPage() {
   const router = useRouter();
   // We use a state to trigger re-renders, but the source of truth is now the imported array
   const [sessions, setSessions] = useState<TrainingSession[]>(trainingSessions);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [newSessionGroupId, setNewSessionGroupId] = useState<string>('');
-  
+
+  const sessionDates = useMemo(() => {
+    return trainingSessions.map(s => new Date(s.date));
+  }, [sessions]);
+
+  const selectedDateString = useMemo(() => {
+    return format(selectedDate, "yyyy-MM-dd");
+  }, [selectedDate]);
+
   const isToday = useMemo(() => {
       const today = new Date();
       today.setHours(0,0,0,0);
@@ -49,15 +63,20 @@ export default function SessionsDashboardPage() {
   }, [selectedDate]);
 
   const filteredSessions = useMemo(() => {
-    // Read from the master list every time
-    return trainingSessions.filter(s => s.date === selectedDate);
+    return trainingSessions.filter(s => {
+        const sessionDate = new Date(s.date);
+        sessionDate.setUTCHours(0,0,0,0);
+        const selDate = new Date(selectedDate);
+        selDate.setUTCHours(0,0,0,0);
+        return sessionDate.getTime() === selDate.getTime()
+    });
   }, [sessions, selectedDate]);
 
   const handleCreateSession = () => {
     if (!newSessionGroupId) return;
     const newSession: TrainingSession = {
       id: `ts${Date.now()}`,
-      date: selectedDate,
+      date: selectedDateString,
       groupId: newSessionGroupId,
       attendance: {},
     };
@@ -77,13 +96,38 @@ export default function SessionsDashboardPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <CardTitle>ניהול אימונים</CardTitle>
             <div className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5 text-muted-foreground" />
-              <Input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-auto"
-              />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className="w-[280px] justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "PPP") : <span>בחר תאריך</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => date && setSelectedDate(date)}
+                      disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(0,0,0,0);
+                          if(date < today){
+                            const sessionExists = sessionDates.some(sessionDate => 
+                                sessionDate.getFullYear() === date.getFullYear() &&
+                                sessionDate.getMonth() === date.getMonth() &&
+                                sessionDate.getDate() === date.getDate()
+                            );
+                            return !sessionExists;
+                          }
+                          return false;
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
             </div>
           </div>
         </CardHeader>
