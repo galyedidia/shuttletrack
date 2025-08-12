@@ -17,12 +17,19 @@ export interface Coach {
 
 export interface AttendanceRecord {
   athleteId: string;
-  date: string; // YYYY-MM-DD
   present: boolean;
-  absenceReason?: 'vacation' | 'injury' | 'illness' | 'other' | string;
-  rating?: 1 | 2 | 3 | 4 | 5;
+  absenceReason?: string;
+  rating?: number;
   comment?: string;
 }
+
+export interface TrainingSession {
+  id: string;
+  date: string; // YYYY-MM-DD
+  groupId: string;
+  attendance: Record<string, AttendanceRecord>;
+}
+
 
 export interface AbsenceReason {
   id: string;

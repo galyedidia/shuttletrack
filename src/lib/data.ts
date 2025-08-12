@@ -1,4 +1,4 @@
-import type { Athlete, Group, Coach, AbsenceReason } from '@/types';
+import type { Athlete, Group, Coach, AbsenceReason, TrainingSession } from '@/types';
 
 export const athletes: Athlete[] = [
   { id: '1', name: 'ישראל ישראלי', phone: '050-1234567' },
@@ -37,4 +37,24 @@ export const absenceReasons: AbsenceReason[] = [
   { id: 'r2', label: 'פציעה' },
   { id: 'r3', label: 'מחלה' },
   { id: 'r4', label: 'אחר' },
+];
+
+// Mock Training Sessions
+export const trainingSessions: TrainingSession[] = [
+    {
+        id: 'ts1',
+        date: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0], // Yesterday
+        groupId: 'g1',
+        attendance: {
+            '1': { athleteId: '1', present: true, rating: 4, comment: 'עבודה טובה על חבטות גב יד' },
+            '3': { athleteId: '3', present: false, absenceReason: 'r3' },
+            '5': { athleteId: '5', present: true, rating: 5, comment: 'ריכוז גבוה, כל הכבוד' },
+        }
+    },
+    {
+        id: 'ts2',
+        date: new Date().toISOString().split('T')[0], // Today
+        groupId: 'g2',
+        attendance: {}
+    }
 ];
