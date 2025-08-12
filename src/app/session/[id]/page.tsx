@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -23,7 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { groups, absenceReasons, trainingSessions as mockSessions } from "@/lib/data";
 import type { AttendanceRecord, Athlete, TrainingSession } from '@/types';
-import { Star, Save } from "lucide-react";
+import { Star, Save, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from '@/components/ui/separator';
 
@@ -44,6 +44,7 @@ const StarRating = ({ rating, setRating, isReadOnly }: { rating: number, setRati
 export default function AttendancePage() {
   const { toast } = useToast();
   const params = useParams();
+  const router = useRouter();
   const sessionId = params.id as string;
 
   const [session, setSession] = useState<TrainingSession | null>(null);
@@ -129,10 +130,10 @@ export default function AttendancePage() {
         </CardHeader>
       </Card>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pb-24">
         {selectedGroup.athletes.map((athlete: Athlete) => {
           const record = getAthleteAttendance(athlete.id);
-          const isPresent = record.present;
+          const isPresent = record.present !== false;
 
           return (
             <Card key={athlete.id}>
@@ -201,14 +202,18 @@ export default function AttendancePage() {
         })}
       </div>
 
-      {!isPastSession && (
-        <CardFooter className="flex justify-end sticky bottom-0 bg-background py-4 px-6 border-t">
+      <CardFooter className="flex justify-end sticky bottom-0 bg-background py-4 px-6 border-t gap-2">
+        {!isPastSession && (
           <Button onClick={handleSave}>
             <Save className="me-2 h-4 w-4" />
             שמור נוכחות
           </Button>
-        </CardFooter>
-      )}
+        )}
+        <Button variant="outline" onClick={() => router.push('/')}>
+           <XCircle className="me-2 h-4 w-4" />
+           סגור
+        </Button>
+      </CardFooter>
     </div>
   );
 }
