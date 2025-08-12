@@ -51,7 +51,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <Sidebar side="right" collapsible="icon" className="border-l">
         <SidebarHeader>
           <Button variant="ghost" className="h-10 w-full justify-start px-2">
@@ -117,7 +117,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
-          <SidebarTrigger className="md:hidden" />
+          <SidebarTrigger />
           <div className="flex-1">
             <h1 className="text-xl font-semibold">
               {navItems.find((item) => item.href === pathname)?.label}
