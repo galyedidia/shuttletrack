@@ -16,14 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +24,7 @@ import { groups, absenceReasons } from "@/lib/data";
 import type { AttendanceRecord, Athlete } from '@/types';
 import { Star, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from '@/components/ui/separator';
 
 const StarRating = ({ rating, setRating }: { rating: number, setRating: (rating: number) => void }) => {
   return (
@@ -68,6 +61,7 @@ export default function AttendancePage() {
       }
       if (field === 'present' && value === false) {
         delete newRecord.rating;
+        delete newRecord.comment;
       }
       return { ...prev, [athleteId]: newRecord };
     });
@@ -91,79 +85,85 @@ export default function AttendancePage() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <CardTitle>רישום נוכחות</CardTitle>
-          <div className="flex items-center gap-4">
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-auto"
-            />
-            <Select onValueChange={setSelectedGroupId} defaultValue={selectedGroupId ?? ""}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="בחר קבוצה" />
-              </SelectTrigger>
-              <SelectContent>
-                {groups.map(group => (
-                  <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <CardTitle>רישום נוכחות</CardTitle>
+            <div className="flex flex-col sm:flex-row items-center gap-2">
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full sm:w-auto"
+              />
+              <Select onValueChange={setSelectedGroupId} defaultValue={selectedGroupId ?? ""}>
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="בחר קבוצה" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map(group => (
+                    <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[150px]">שם מלא</TableHead>
-                <TableHead className="text-center">נוכחות</TableHead>
-                <TableHead className="text-center w-[150px]">דירוג אימון</TableHead>
-                <TableHead className="w-[200px]">סיבת היעדרות</TableHead>
-                <TableHead>הערות פרטניות</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {selectedGroup?.athletes.map((athlete: Athlete) => {
-                const record = getAthleteAttendance(athlete.id);
-                const isPresent = record.present;
+        </CardHeader>
+      </Card>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {selectedGroup?.athletes.map((athlete: Athlete) => {
+          const record = getAthleteAttendance(athlete.id);
+          const isPresent = record.present;
 
-                return (
-                  <TableRow key={athlete.id}>
-                    <TableCell className="font-medium">{athlete.name}</TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                         <Label htmlFor={`attendance-${athlete.id}`}>נוכח</Label>
-                         <Switch
-                          id={`attendance-${athlete.id}`}
-                          checked={isPresent}
-                          onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', checked)}
-                          dir="ltr"
-                         />
-                         <Label htmlFor={`attendance-${athlete.id}`}>נעדר</Label>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {isPresent && (
-                        <div className="flex justify-center">
-                          <StarRating
-                            rating={record.rating || 0}
-                            setRating={(rating) => handleAttendanceChange(athlete.id, 'rating', rating)}
-                          />
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {!isPresent && (
-                        <Select
+          return (
+            <Card key={athlete.id}>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                   <CardTitle className="text-lg">{athlete.name}</CardTitle>
+                   <div className="flex items-center space-x-2 space-x-reverse">
+                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
+                       <Switch
+                        id={`attendance-${athlete.id}`}
+                        checked={isPresent}
+                        onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', checked)}
+                        dir="ltr"
+                       />
+                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
+                    </div>
+                </div>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-6 space-y-4">
+                {isPresent ? (
+                    <>
+                     <div className="flex justify-between items-center">
+                       <Label>דירוג אימון</Label>
+                       <StarRating
+                          rating={record.rating || 0}
+                          setRating={(rating) => handleAttendanceChange(athlete.id, 'rating', rating)}
+                        />
+                     </div>
+                     <div>
+                        <Label htmlFor={`comment-${athlete.id}`}>הערות פרטניות</Label>
+                        <Textarea
+                            id={`comment-${athlete.id}`}
+                            placeholder="הוסף הערה..."
+                            value={record.comment || ""}
+                            onChange={(e) => handleAttendanceChange(athlete.id, 'comment', e.target.value)}
+                            className="mt-1"
+                        />
+                     </div>
+                    </>
+                ) : (
+                    <div>
+                        <Label htmlFor={`absence-${athlete.id}`}>סיבת היעדרות</Label>
+                         <Select
                           onValueChange={(value) => handleAttendanceChange(athlete.id, 'absenceReason', value)}
                           value={record.absenceReason || ""}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger id={`absence-${athlete.id}`} className="mt-1">
                             <SelectValue placeholder="בחר סיבה" />
                           </SelectTrigger>
                           <SelectContent>
@@ -172,29 +172,22 @@ export default function AttendancePage() {
                             ))}
                           </SelectContent>
                         </Select>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Textarea
-                        placeholder="הוסף הערה..."
-                        value={record.comment || ""}
-                        onChange={(e) => handleAttendanceChange(athlete.id, 'comment', e.target.value)}
-                        className="min-h-[40px]"
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button onClick={handleSave} className="ms-auto">
-          <Save className="me-2 h-4 w-4" />
-          שמור נוכחות
-        </Button>
-      </CardFooter>
-    </Card>
+                    </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {selectedGroup && (
+        <CardFooter className="flex justify-end sticky bottom-0 bg-background py-4 px-6 border-t">
+          <Button onClick={handleSave}>
+            <Save className="me-2 h-4 w-4" />
+            שמור נוכחות
+          </Button>
+        </CardFooter>
+      )}
+    </div>
   );
 }
