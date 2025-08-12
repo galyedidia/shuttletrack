@@ -21,7 +21,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { groups, absenceReasons, trainingSessions as mockSessions } from "@/lib/data";
+import { groups, absenceReasons, trainingSessions } from "@/lib/data";
 import type { AttendanceRecord, Athlete, TrainingSession } from '@/types';
 import { Star, Save, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -52,7 +52,7 @@ export default function AttendancePage() {
 
   useEffect(() => {
     // In a real app, you'd fetch this from a database
-    const foundSession = mockSessions.find(s => s.id === sessionId);
+    const foundSession = trainingSessions.find(s => s.id === sessionId);
     if (foundSession) {
       setSession(foundSession);
       // Deep copy attendance to avoid direct mutation of mock data until save
@@ -103,9 +103,9 @@ export default function AttendancePage() {
 
   const handleSave = () => {
     // Find the session in our mock DB and update it
-    const sessionIndex = mockSessions.findIndex(s => s.id === sessionId);
+    const sessionIndex = trainingSessions.findIndex(s => s.id === sessionId);
     if (sessionIndex !== -1) {
-      mockSessions[sessionIndex].attendance = attendance;
+        trainingSessions[sessionIndex].attendance = attendance;
     }
 
     console.log("Saving attendance for session:", sessionId, attendance);
@@ -147,7 +147,7 @@ export default function AttendancePage() {
                 <div className="flex justify-between items-center">
                    <CardTitle className="text-lg">{athlete.name}</CardTitle>
                    <div className="flex items-center space-x-2 space-x-reverse">
-                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
+                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
                        <Switch
                         id={`attendance-${athlete.id}`}
                         checked={isPresent}
@@ -155,7 +155,7 @@ export default function AttendancePage() {
                         dir="ltr"
                         disabled={isPastSession}
                        />
-                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
+                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
                     </div>
                 </div>
               </CardHeader>

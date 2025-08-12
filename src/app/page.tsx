@@ -28,14 +28,15 @@ import {
   DialogTrigger,
   DialogClose
 } from "@/components/ui/dialog"
-import { groups, trainingSessions as mockSessions, athletes } from "@/lib/data";
+import { groups, trainingSessions } from "@/lib/data";
 import type { TrainingSession } from '@/types';
 import { PlusCircle, Calendar as CalendarIcon, Users, Edit } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
 export default function SessionsDashboardPage() {
   const router = useRouter();
-  const [sessions, setSessions] = useState<TrainingSession[]>(mockSessions);
+  // We use a state to trigger re-renders, but the source of truth is now the imported array
+  const [sessions, setSessions] = useState<TrainingSession[]>(trainingSessions);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [newSessionGroupId, setNewSessionGroupId] = useState<string>('');
   
@@ -48,7 +49,8 @@ export default function SessionsDashboardPage() {
   }, [selectedDate]);
 
   const filteredSessions = useMemo(() => {
-    return sessions.filter(s => s.date === selectedDate);
+    // Read from the master list every time
+    return trainingSessions.filter(s => s.date === selectedDate);
   }, [sessions, selectedDate]);
 
   const handleCreateSession = () => {
@@ -59,7 +61,10 @@ export default function SessionsDashboardPage() {
       groupId: newSessionGroupId,
       attendance: {},
     };
-    setSessions(prev => [...prev, newSession]);
+    // Add to the master list
+    trainingSessions.push(newSession);
+    // Trigger a re-render by updating the state
+    setSessions([...trainingSessions]);
     setNewSessionGroupId('');
   };
   
@@ -105,7 +110,7 @@ export default function SessionsDashboardPage() {
                 <CardFooter>
                   <Button className="w-full" onClick={() => router.push(`/session/${session.id}`)}>
                     <Edit className="me-2 h-4 w-4" />
-                    {isToday ? 'ערוך אימון' : 'הצג אימון'}
+                    {new Date(session.date).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0) ? 'ערוך אימון' : 'הצג אימון'}
                   </Button>
                 </CardFooter>
               </Card>
