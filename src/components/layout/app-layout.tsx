@@ -28,6 +28,7 @@ import {
   SidebarFooter,
   SidebarTrigger,
   SidebarInset,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   ClipboardList,
@@ -46,6 +47,29 @@ const navItems = [
   { href: "/settings", label: "הגדרות", icon: Settings },
 ];
 
+function NavLink({ href, label, icon: Icon }: { href: string; label: string; icon: React.ElementType }) {
+  const pathname = usePathname();
+  const { setOpen } = useSidebar();
+  const isActive = pathname === href;
+
+  return (
+    <SidebarMenuItem>
+      <Link href={href} legacyBehavior passHref>
+        <SidebarMenuButton
+          asChild
+          isActive={isActive}
+          onClick={() => setOpen(false)}
+        >
+          <a>
+            <Icon />
+            <span>{label}</span>
+          </a>
+        </SidebarMenuButton>
+      </Link>
+    </SidebarMenuItem>
+  );
+}
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
@@ -61,20 +85,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarContent>
           <SidebarMenu>
             {navItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <Link href={item.href} legacyBehavior passHref>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.href}
-                    tooltip={item.label}
-                  >
-                    <a>
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
+              <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} />
             ))}
           </SidebarMenu>
         </SidebarContent>
