@@ -91,10 +91,12 @@ const SidebarProvider = React.forwardRef<
 
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
-      return isMobile
-        ? setOpenMobile((open) => !open)
-        : setOpen((open) => !open)
-    }, [isMobile, setOpen, setOpenMobile])
+      // On mobile, we toggle the off-canvas menu.
+      if (isMobile) {
+        setOpenMobile((open) => !open)
+        return
+      }
+    }, [isMobile, setOpenMobile])
 
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
@@ -583,7 +585,7 @@ const SidebarMenuButton = React.forwardRef<
         <TooltipContent
           side="right"
           align="center"
-          hidden={state !== "collapsed" || isMobile}
+          hidden={true}
           {...tooltip}
         />
       </Tooltip>
