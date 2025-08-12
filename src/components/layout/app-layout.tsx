@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { AppLogo } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const navItems = [
   { href: "/", label: "לוח נוכחות", icon: ClipboardList },
@@ -49,10 +50,11 @@ const navItems = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isMobile = useIsMobile();
 
   return (
     <SidebarProvider defaultOpen={false}>
-      <Sidebar side="right" collapsible="icon" className="border-l">
+      <Sidebar side="right" collapsible={isMobile ? "offcanvas" : "icon"} className="border-l">
         <SidebarHeader>
           <Button variant="ghost" className="h-10 w-full justify-start px-2">
             <AppLogo className="h-7 w-7 text-primary" />
