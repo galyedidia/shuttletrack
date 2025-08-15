@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import {
@@ -21,25 +21,39 @@ import { useToast } from "@/hooks/use-toast";
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('coach@example.com');
+  const [password, setPassword] = useState('password');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // For this prototype, we'll use a test user.
-      // In a real app, you would have a user management system.
-      await signInWithEmailAndPassword(auth, "coach@example.com", "password");
+      // Try to sign in the user
+      await signInWithEmailAndPassword(auth, email, password);
       router.push('/');
-    } catch (error) {
-      console.error("Login failed", error);
-      toast({
-        title: "שגיאת התחברות",
-        description: "אימייל או סיסמה שגויים.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      // If the user does not exist, create them
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+          router.push('/');
+        } catch (createError: any) {
+            console.error("User creation failed", createError);
+            toast({
+                title: "שגיאת יצירת משתמש",
+                description: "לא ניתן היה ליצור את המשתמש.",
+                variant: "destructive",
+            });
+        }
+      } else {
+        console.error("Login failed", error);
+        toast({
+          title: "שגיאת התחברות",
+          description: "אימייל או סיסמה שגויים.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
