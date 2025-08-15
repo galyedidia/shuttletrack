@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(user);
         // For this prototype, we'll hardcode the coach name
         // In a real app, you would fetch this from a 'users' or 'coaches' collection
+        // using the user.phoneNumber as the key
         setCoachName("מאמן ראשי");
       } else {
         setUser(null);

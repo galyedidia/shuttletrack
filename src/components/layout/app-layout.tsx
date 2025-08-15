@@ -88,7 +88,9 @@ function UserProfile() {
                 </Avatar>
                 <div className="flex flex-col items-start ms-2 text-start">
                   <p className="font-medium text-sm">{coachName || 'מאמן'}</p>
-                  <p className="text-xs text-muted-foreground">מנהל</p>
+                  <p className="text-xs text-muted-foreground">
+                    {user.phoneNumber || 'מנהל'}
+                  </p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
@@ -97,7 +99,7 @@ function UserProfile() {
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{coachName}</p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {user.email}
+                    {user.phoneNumber}
                   </p>
                 </div>
               </DropdownMenuLabel>

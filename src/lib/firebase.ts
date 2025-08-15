@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, RecaptchaVerifier } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -20,4 +20,21 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-export { app, db, auth };
+// Helper function for Recaptcha
+const getRecaptchaVerifier = (containerId: string) => {
+    if (typeof window !== 'undefined') {
+        if (!(window as any).recaptchaVerifier) {
+            (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+                'size': 'invisible',
+                'callback': (response: any) => {
+                    // reCAPTCHA solved, allow signInWithPhoneNumber.
+                }
+            });
+        }
+        return (window as any).recaptchaVerifier;
+    }
+    return null;
+}
+
+
+export { app, db, auth, getRecaptchaVerifier };
