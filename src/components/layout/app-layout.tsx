@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -39,6 +40,7 @@ import {
   User,
 } from "lucide-react";
 import { AppLogo } from "@/components/icons";
+import { useAuth } from "@/lib/auth";
 
 const navItems = [
   { href: "/", label: "לוח נוכחות", icon: ClipboardList },
@@ -70,11 +72,64 @@ function NavLink({ href, label, icon: Icon }: { href: string; label: string; ico
   );
 }
 
+function UserProfile() {
+    const { user, coachName, signOut } = useAuth();
+    if (!user) return null;
+
+    const fallback = coachName ? coachName.charAt(0).toUpperCase() : 'U';
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-12 w-full justify-start px-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage data-ai-hint="avatar" src={user.photoURL || `https://placehold.co/40x40.png`} alt={coachName || 'User'} />
+                  <AvatarFallback>{fallback}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-start ms-2 text-start">
+                  <p className="font-medium text-sm">{coachName || 'מאמן'}</p>
+                  <p className="text-xs text-muted-foreground">מנהל</p>
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{coachName}</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled>
+                <User className="ms-2 h-4 w-4" />
+                <span>פרופיל</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={signOut}>
+                <LogOut className="ms-2 h-4 w-4" />
+                <span>התנתקות</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+    )
+}
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  if (!user && pathname !== '/login') {
+      return null; // Or a loading spinner, handled by AuthProvider
+  }
+  
+  if (pathname === '/login') {
+      return <>{children}</>;
+  }
+
 
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider>
       <Sidebar side="right" collapsible="offcanvas" className="border-l bg-background">
         <SidebarHeader>
           <Button variant="ghost" className="h-10 w-full justify-start px-2">
@@ -90,39 +145,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-12 w-full justify-start px-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="https://placehold.co/40x40.png" alt="מאמן" />
-                  <AvatarFallback>M</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col items-start ms-2 text-start">
-                  <p className="font-medium text-sm">מאמן ראשי</p>
-                  <p className="text-xs text-muted-foreground">מנהל</p>
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">מאמן ראשי</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    coach@example.com
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="ms-2 h-4 w-4" />
-                <span>פרופיל</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <LogOut className="ms-2 h-4 w-4" />
-                <span>התנתקות</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <UserProfile />
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
