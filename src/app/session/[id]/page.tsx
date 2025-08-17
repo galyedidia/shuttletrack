@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -21,8 +22,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { groups, absenceReasons, trainingSessions } from "@/lib/data";
-import type { AttendanceRecord, Athlete, TrainingSession } from '@/types';
+import { getTrainingSessionById, getGroups, getAbsenceReasons, getAthletes } from "@/lib/data";
+import type { AttendanceRecord, Athlete, TrainingSession, Group, AbsenceReason } from '@/types';
 import { Star, Save, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from '@/components/ui/separator';
@@ -48,16 +49,34 @@ export default function AttendancePage() {
   const sessionId = params.id as string;
 
   const [session, setSession] = useState<TrainingSession | null>(null);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [absenceReasons, setAbsenceReasons] = useState<AbsenceReason[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [attendance, setAttendance] = useState<Record<string, AttendanceRecord>>({});
 
   useEffect(() => {
-    // In a real app, you'd fetch this from a database
-    const foundSession = trainingSessions.find(s => s.id === sessionId);
-    if (foundSession) {
-      setSession(foundSession);
-      // Deep copy attendance to avoid direct mutation of mock data until save
-      setAttendance(JSON.parse(JSON.stringify(foundSession.attendance || {})));
+    async function fetchData() {
+        if (!sessionId) return;
+        setLoading(true);
+        const [sessionData, groupsData, athletesData, reasonsData] = await Promise.all([
+            getTrainingSessionById(sessionId),
+            getGroups(),
+            getAthletes(),
+            getAbsenceReasons(),
+        ]);
+
+        if (sessionData) {
+            setSession(sessionData);
+            setAttendance(JSON.parse(JSON.stringify(sessionData.attendance || {})));
+        }
+        setGroups(groupsData);
+        setAthletes(athletesData);
+        setAbsenceReasons(reasonsData);
+        setLoading(false);
     }
+    fetchData();
   }, [sessionId]);
 
   const isPastSession = useMemo(() => {
@@ -72,7 +91,15 @@ export default function AttendancePage() {
   const selectedGroup = useMemo(() => {
     if (!session) return null;
     return groups.find(g => g.id === session.groupId);
-  }, [session]);
+  }, [session, groups]);
+
+  const athletesInGroup = useMemo(() => {
+      if (!selectedGroup) return [];
+      // In our new structure, group.athletes might be an array of IDs.
+      // For this prototype, we'll assume it's still full athlete objects for simplicity.
+      // A real app would look up the athlete objects from the main athletes list.
+      return selectedGroup.athletes;
+  }, [selectedGroup]);
 
   const handleAttendanceChange = (athleteId: string, field: keyof AttendanceRecord, value: any) => {
     if(isPastSession) return;
@@ -102,25 +129,19 @@ export default function AttendancePage() {
   };
 
   const handleSave = () => {
-    // Find the session in our mock DB and update it
-    const sessionIndex = trainingSessions.findIndex(s => s.id === sessionId);
-    if (sessionIndex !== -1) {
-        trainingSessions[sessionIndex].attendance = attendance;
-    }
-
-    console.log("Saving attendance for session:", sessionId, attendance);
+    // This will be updated to write to Firestore in the next step
+    console.log("Saving attendance to Firestore:", sessionId, attendance);
     toast({
       title: "הנוכחות נשמרה בהצלחה",
       description: `נתוני הנוכחות עבור ${selectedGroup?.name} נשמרו.`,
     });
   };
 
-  if (!session) {
-      // In a real app, you might show a loading skeleton here
+  if (loading) {
       return <div>טוען...</div>;
   }
   
-  if (!selectedGroup) {
+  if (!session || !selectedGroup) {
       notFound();
   }
 
@@ -137,7 +158,7 @@ export default function AttendancePage() {
       </Card>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pb-24">
-        {selectedGroup.athletes.map((athlete: Athlete) => {
+        {athletesInGroup.map((athlete: Athlete) => {
           const record = getAthleteAttendance(athlete.id);
           const isPresent = record.present !== false;
 
@@ -150,8 +171,8 @@ export default function AttendancePage() {
                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
                        <Switch
                         id={`attendance-${athlete.id}`}
-                        checked={isPresent}
-                        onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', checked)}
+                        checked={!isPresent}
+                        onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', !checked)}
                         dir="ltr"
                         disabled={isPastSession}
                        />

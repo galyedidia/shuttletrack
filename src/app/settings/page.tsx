@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -48,21 +49,45 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { groups, coaches, absenceReasons, athletes } from "@/lib/data";
+import { getGroups, getCoaches, getAbsenceReasons, getAthletes } from "@/lib/data";
 import { AppLogo } from '@/components/icons';
 import { UserPlus, PlusCircle, Trash2, Edit } from 'lucide-react';
-import type { Athlete, Group } from '@/types';
+import type { Athlete, Group, Coach, AbsenceReason } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [absenceReasons, setAbsenceReasons] = useState<AbsenceReason[]>([]);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedAthlete, setSelectedAthlete] = useState<{ athlete: Athlete; group: Group } | null>(null);
   const [editedName, setEditedName] = useState("");
   const [editedPhone, setEditedPhone] = useState("");
   const [targetGroupId, setTargetGroupId] = useState("");
-  const [_, setForceRender] = useState(0); // Helper to re-render on data change
+  
+  useEffect(() => {
+    async function fetchData() {
+        setLoading(true);
+        const [groupsData, coachesData, reasonsData, athletesData] = await Promise.all([
+            getGroups(),
+            getCoaches(),
+            getAbsenceReasons(),
+            getAthletes()
+        ]);
+        setGroups(groupsData);
+        setCoaches(coachesData);
+        setAbsenceReasons(reasonsData);
+        setAthletes(athletesData);
+        setLoading(false);
+    }
+    fetchData();
+  }, []);
 
   const handleEditClick = (athlete: Athlete, group: Group) => {
     setSelectedAthlete({ athlete, group });
@@ -76,27 +101,16 @@ export default function SettingsPage() {
     if (!selectedAthlete) return;
 
     const { athlete, group: originalGroup } = selectedAthlete;
-
-    // Find the original athlete in the mock data to update their details
-    const athleteToUpdate = athletes.find(a => a.id === athlete.id);
-    if (athleteToUpdate) {
-        athleteToUpdate.name = editedName;
-        athleteToUpdate.phone = editedPhone;
-    }
     
-    // If the group has changed, move the athlete
-    if (originalGroup.id !== targetGroupId) {
-        const targetGroup = groups.find(g => g.id === targetGroupId);
-        if (targetGroup) {
-            // Remove from original group
-            const athleteIndex = originalGroup.athletes.findIndex(a => a.id === athlete.id);
-            if (athleteIndex > -1) {
-                originalGroup.athletes.splice(athleteIndex, 1);
-            }
-            // Add to new group
-            targetGroup.athletes.push(athleteToUpdate!);
-        }
-    }
+    // This will be replaced with a Firestore update call
+    console.log("Saving changes to Firestore:", {
+        athleteId: athlete.id,
+        newName: editedName,
+        newPhone: editedPhone,
+        originalGroupId: originalGroup.id,
+        newGroupId: targetGroupId,
+    });
+    
 
     toast({
         title: "השינויים נשמרו",
@@ -105,8 +119,18 @@ export default function SettingsPage() {
 
     setIsEditDialogOpen(false);
     setSelectedAthlete(null);
-    setForceRender(c => c + 1); // Trigger a re-render to show updated groups
+    // In a real app, we would refetch the data or apply optimistic updates
   };
+
+  const getAthletesInGroup = (group: Group) => {
+    // This logic may need to change depending on the data model in Firestore
+    // For now, we assume group.athletes is an array of athlete objects.
+    return group.athletes || [];
+  }
+
+  if (loading) {
+      return <div>טוען הגדרות...</div>
+  }
 
   return (
     <>
@@ -148,7 +172,7 @@ export default function SettingsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                            {group.athletes.map(athlete => (
+                            {getAthletesInGroup(group).map(athlete => (
                                 <TableRow key={athlete.id}>
                                     <TableCell>{athlete.name}</TableCell>
                                     <TableCell>{athlete.phone}</TableCell>
@@ -195,7 +219,7 @@ export default function SettingsPage() {
                     {coaches.map(coach => (
                         <TableRow key={coach.id}>
                             <TableCell>{coach.name}</TableCell>
-                            <TableCell>מאמן</TableCell>
+                            <TableCell>{coach.phone}</TableCell>
                             <TableCell className="text-left">
                                 <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
                                 <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>

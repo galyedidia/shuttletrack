@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -33,21 +34,38 @@ import {
   DialogTrigger,
   DialogClose
 } from "@/components/ui/dialog"
-import { groups, trainingSessions } from "@/lib/data";
-import type { TrainingSession } from '@/types';
+import { getGroups, getTrainingSessions } from "@/lib/data";
+import type { TrainingSession, Group, Athlete } from '@/types';
 import { PlusCircle, Calendar as CalendarIcon, Users, Edit } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { format } from "date-fns";
 
 export default function SessionsDashboardPage() {
   const router = useRouter();
-  // We use a state to trigger re-renders, but the source of truth is now the imported array
-  const [sessions, setSessions] = useState<TrainingSession[]>(trainingSessions);
+  const [sessions, setSessions] = useState<TrainingSession[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [newSessionGroupId, setNewSessionGroupId] = useState<string>('');
 
+  useEffect(() => {
+    async function fetchData() {
+        setLoading(true);
+        const [sessionsData, groupsData] = await Promise.all([
+            getTrainingSessions(),
+            getGroups()
+        ]);
+        setSessions(sessionsData);
+        setGroups(groupsData);
+        setLoading(false);
+    }
+    fetchData();
+  }, []);
+
+
   const sessionDates = useMemo(() => {
-    return trainingSessions.map(s => new Date(s.date));
+    return sessions.map(s => new Date(s.date));
   }, [sessions]);
 
   const selectedDateString = useMemo(() => {
@@ -63,7 +81,7 @@ export default function SessionsDashboardPage() {
   }, [selectedDate]);
 
   const filteredSessions = useMemo(() => {
-    return trainingSessions.filter(s => {
+    return sessions.filter(s => {
         const sessionDate = new Date(s.date);
         sessionDate.setUTCHours(0,0,0,0);
         const selDate = new Date(selectedDate);
@@ -74,6 +92,7 @@ export default function SessionsDashboardPage() {
 
   const handleCreateSession = () => {
     if (!newSessionGroupId) return;
+    // In a real app, this would write to Firestore and then refetch or optimistically update
     const newSession: TrainingSession = {
       id: `ts${Date.now()}`,
       date: selectedDateString,
@@ -81,13 +100,18 @@ export default function SessionsDashboardPage() {
       attendance: {},
     };
     // Add to the master list
-    trainingSessions.push(newSession);
+    // trainingSessions.push(newSession);
     // Trigger a re-render by updating the state
-    setSessions([...trainingSessions]);
+    setSessions(prev => [...prev, newSession]);
     setNewSessionGroupId('');
+    console.log("This should write to Firestore now.", newSession)
   };
   
   const getGroupById = (groupId: string) => groups.find(g => g.id === groupId);
+
+  if (loading) {
+    return <div>טוען נתונים...</div>
+  }
 
   return (
     <div className="space-y-6">
@@ -137,6 +161,10 @@ export default function SessionsDashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredSessions.map(session => {
             const group = getGroupById(session.groupId);
+            // Calculate number of athletes in group from the groups data
+            const groupDetails = groups.find(g => g.id === session.groupId);
+            const athleteCount = groupDetails?.athletes?.length || 0;
+
             return (
               <Card key={session.id}>
                 <CardHeader>
@@ -148,7 +176,7 @@ export default function SessionsDashboardPage() {
                 <CardContent>
                   <div className="flex items-center text-muted-foreground">
                     <Users className="me-2 h-4 w-4" />
-                    <span>{group?.athletes.length} ספורטאים</span>
+                    <span>{athleteCount} ספורטאים</span>
                   </div>
                 </CardContent>
                 <CardFooter>

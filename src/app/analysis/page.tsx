@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -18,12 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { athletes, groups } from "@/lib/data";
+import { getAthletes } from "@/lib/data";
+import type { Athlete } from '@/types';
 import { Lightbulb, ThumbsUp, ThumbsDown, Meh } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-
-const allAthletes = Array.from(new Set(groups.flatMap(g => g.athletes)));
 
 // Mock comments and analysis
 const mockComments: Record<string, { date: string, comment: string }[]> = {
@@ -35,13 +34,25 @@ const mockComments: Record<string, { date: string, comment: string }[]> = {
 const mockAnalysis = {
   themes: ['עבודת רגליים', 'ריכוז', 'חבטות', 'הגנה'],
   sentiment: 'מעורב',
-  summary: 'הספורטאי מראה התקדמות טובה בתחומים טכניים אך נדרש שיפור בריכוז ועבודת רגליים עקבית.',
+  summary: 'הספורטאי מראה התקדמות טובה בתחומים טכניים אך נדרש שיפור בריכוז ועבודת הרגליים עקבית.',
 };
 
 export default function AnalysisPage() {
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<typeof mockAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [loadingAthletes, setLoadingAthletes] = useState(true);
+
+  useEffect(() => {
+    async function fetchAthletes() {
+        setLoadingAthletes(true);
+        const athletesData = await getAthletes();
+        setAthletes(athletesData);
+        setLoadingAthletes(false);
+    }
+    fetchAthletes();
+  }, []);
 
   const handleAnalyze = () => {
     if (!selectedAthleteId) return;
@@ -69,12 +80,12 @@ export default function AnalysisPage() {
           <CardDescription>בחר ספורטאי כדי לנתח את הערות המאמן לגביו.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Select onValueChange={setSelectedAthleteId}>
+          <Select onValueChange={setSelectedAthleteId} disabled={loadingAthletes}>
             <SelectTrigger>
-              <SelectValue placeholder="בחר ספורטאי..." />
+              <SelectValue placeholder={loadingAthletes ? "טוען ספורטאים..." : "בחר ספורטאי..."} />
             </SelectTrigger>
             <SelectContent>
-              {allAthletes.map(athlete => (
+              {athletes.map(athlete => (
                 <SelectItem key={athlete.id} value={athlete.id}>{athlete.name}</SelectItem>
               ))}
             </SelectContent>

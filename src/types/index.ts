@@ -7,12 +7,15 @@ export interface Athlete {
 export interface Group {
   id: string;
   name: string;
-  athletes: Athlete[];
+  // This will often be an array of athlete IDs in Firestore,
+  // but for simplicity in the UI, we might populate it with full Athlete objects.
+  athletes: Athlete[] | string[];
 }
 
 export interface Coach {
   id: string;
   name: string;
+  phone: string;
 }
 
 export interface AttendanceRecord {

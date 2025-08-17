@@ -5,8 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from './firebase';
 import { useRouter, usePathname } from 'next/navigation';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { getCoachByPhone } from './data';
 
 interface AuthContextType {
   user: User | null;
@@ -26,12 +25,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
+      if (user && user.phoneNumber) {
         setUser(user);
-        // For this prototype, we'll hardcode the coach name
-        // In a real app, you would fetch this from a 'users' or 'coaches' collection
-        // using the user.phoneNumber as the key
-        setCoachName("מאמן ראשי");
+        // Fetch coach data from Firestore
+        const coach = await getCoachByPhone(user.phoneNumber);
+        setCoachName(coach?.name || "מאמן");
       } else {
         setUser(null);
         setCoachName(null);
