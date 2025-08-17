@@ -22,7 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { getTrainingSessionById, getGroups, getAbsenceReasons, getAthletes } from "@/lib/data";
+import { getTrainingSessionById, getAbsenceReasons, getAthletesInGroup, getGroupById, updateAttendance } from "@/lib/data";
 import type { AttendanceRecord, Athlete, TrainingSession, Group, AbsenceReason } from '@/types';
 import { Star, Save, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -49,8 +49,8 @@ export default function AttendancePage() {
   const sessionId = params.id as string;
 
   const [session, setSession] = useState<TrainingSession | null>(null);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [athletesInGroup, setAthletesInGroup] = useState<Athlete[]>([]);
   const [absenceReasons, setAbsenceReasons] = useState<AbsenceReason[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -60,19 +60,25 @@ export default function AttendancePage() {
     async function fetchData() {
         if (!sessionId) return;
         setLoading(true);
-        const [sessionData, groupsData, athletesData, reasonsData] = await Promise.all([
-            getTrainingSessionById(sessionId),
-            getGroups(),
-            getAthletes(),
+        
+        const sessionData = await getTrainingSessionById(sessionId);
+        if (!sessionData) {
+            setLoading(false);
+            notFound();
+            return;
+        }
+
+        setSession(sessionData);
+        setAttendance(JSON.parse(JSON.stringify(sessionData.attendance || {})));
+
+        const [groupData, athletesData, reasonsData] = await Promise.all([
+            getGroupById(sessionData.groupId),
+            getAthletesInGroup(sessionData.groupId),
             getAbsenceReasons(),
         ]);
 
-        if (sessionData) {
-            setSession(sessionData);
-            setAttendance(JSON.parse(JSON.stringify(sessionData.attendance || {})));
-        }
-        setGroups(groupsData);
-        setAthletes(athletesData);
+        setSelectedGroup(groupData);
+        setAthletesInGroup(athletesData);
         setAbsenceReasons(reasonsData);
         setLoading(false);
     }
@@ -84,22 +90,9 @@ export default function AttendancePage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const sessionDate = new Date(session.date);
-    sessionDate.setHours(0,0,0,0);
+    sessionDate.setUTCHours(0,0,0,0);
     return sessionDate.getTime() < today.getTime();
   }, [session]);
-
-  const selectedGroup = useMemo(() => {
-    if (!session) return null;
-    return groups.find(g => g.id === session.groupId);
-  }, [session, groups]);
-
-  const athletesInGroup = useMemo(() => {
-      if (!selectedGroup) return [];
-      // In our new structure, group.athletes might be an array of IDs.
-      // For this prototype, we'll assume it's still full athlete objects for simplicity.
-      // A real app would look up the athlete objects from the main athletes list.
-      return selectedGroup.athletes;
-  }, [selectedGroup]);
 
   const handleAttendanceChange = (athleteId: string, field: keyof AttendanceRecord, value: any) => {
     if(isPastSession) return;
@@ -128,17 +121,24 @@ export default function AttendancePage() {
     };
   };
 
-  const handleSave = () => {
-    // This will be updated to write to Firestore in the next step
-    console.log("Saving attendance to Firestore:", sessionId, attendance);
-    toast({
-      title: "הנוכחות נשמרה בהצלחה",
-      description: `נתוני הנוכחות עבור ${selectedGroup?.name} נשמרו.`,
-    });
+  const handleSave = async () => {
+    try {
+      await updateAttendance(sessionId, attendance);
+      toast({
+        title: "הנוכחות נשמרה בהצלחה",
+        description: `נתוני הנוכחות עבור ${selectedGroup?.name} נשמרו.`,
+      });
+    } catch (error) {
+       toast({
+        title: "שגיאה בשמירת נוכחות",
+        description: "אירעה שגיאה בעת שמירת הנתונים. נסה שוב.",
+        variant: "destructive"
+      });
+    }
   };
 
   if (loading) {
-      return <div>טוען...</div>;
+      return <div className="flex h-screen items-center justify-center">טוען נתוני אימון...</div>;
   }
   
   if (!session || !selectedGroup) {
@@ -168,15 +168,15 @@ export default function AttendancePage() {
                 <div className="flex justify-between items-center">
                    <CardTitle className="text-lg">{athlete.name}</CardTitle>
                    <div className="flex items-center space-x-2 space-x-reverse">
-                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
+                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
                        <Switch
                         id={`attendance-${athlete.id}`}
-                        checked={!isPresent}
-                        onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', !checked)}
+                        checked={isPresent}
+                        onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', checked)}
                         dir="ltr"
                         disabled={isPastSession}
                        />
-                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
+                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
                     </div>
                 </div>
               </CardHeader>
@@ -244,3 +244,4 @@ export default function AttendancePage() {
     </div>
   );
 }
+

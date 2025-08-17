@@ -34,14 +34,16 @@ import {
   DialogTrigger,
   DialogClose
 } from "@/components/ui/dialog"
-import { getGroups, getTrainingSessions } from "@/lib/data";
+import { getGroups, getTrainingSessions, addTrainingSession, getAthletesInGroup } from "@/lib/data";
 import type { TrainingSession, Group, Athlete } from '@/types';
 import { PlusCircle, Calendar as CalendarIcon, Users, Edit } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SessionsDashboardPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,24 +92,49 @@ export default function SessionsDashboardPage() {
     });
   }, [sessions, selectedDate]);
 
-  const handleCreateSession = () => {
+  const handleCreateSession = async () => {
     if (!newSessionGroupId) return;
-    // In a real app, this would write to Firestore and then refetch or optimistically update
-    const newSession: TrainingSession = {
-      id: `ts${Date.now()}`,
-      date: selectedDateString,
-      groupId: newSessionGroupId,
-      attendance: {},
-    };
-    // Add to the master list
-    // trainingSessions.push(newSession);
-    // Trigger a re-render by updating the state
-    setSessions(prev => [...prev, newSession]);
-    setNewSessionGroupId('');
-    console.log("This should write to Firestore now.", newSession)
+    try {
+      const newSession = await addTrainingSession({
+        date: selectedDateString,
+        groupId: newSessionGroupId,
+        attendance: {},
+      });
+      setSessions(prev => [...prev, newSession]);
+      setNewSessionGroupId('');
+       toast({
+        title: "אימון נוצר בהצלחה",
+        description: `האימון לקבוצה נוצר לתאריך ${selectedDateString}.`,
+      });
+    } catch (error) {
+       toast({
+        title: "שגיאה ביצירת אימון",
+        description: "אירעה שגיאה בעת יצירת האימון. נסה שוב.",
+        variant: "destructive"
+      });
+    }
   };
   
   const getGroupById = (groupId: string) => groups.find(g => g.id === groupId);
+  
+  // This is a new helper state to manage athlete counts for display
+  const [athleteCounts, setAthleteCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+        const counts: Record<string, number> = {};
+        for (const group of groups) {
+            const athletes = await getAthletesInGroup(group.id);
+            counts[group.id] = athletes.length;
+        }
+        setAthleteCounts(counts);
+    };
+
+    if (groups.length > 0) {
+        fetchCounts();
+    }
+  }, [groups]);
+
 
   if (loading) {
     return <div>טוען נתונים...</div>
@@ -138,15 +165,20 @@ export default function SessionsDashboardPage() {
                       disabled={(date) => {
                           const today = new Date();
                           today.setHours(0,0,0,0);
-                          if(date < today){
-                            const sessionExists = sessionDates.some(sessionDate => 
-                                sessionDate.getFullYear() === date.getFullYear() &&
-                                sessionDate.getMonth() === date.getMonth() &&
-                                sessionDate.getDate() === date.getDate()
-                            );
-                            return !sessionExists;
-                          }
-                          return false;
+                          // Allow future dates
+                          if (date > today) return false;
+                          
+                          // Check if there is a session on this past date
+                          const sessionExists = sessionDates.some(sessionDate => {
+                              const sDate = new Date(sessionDate);
+                              sDate.setUTCHours(0,0,0,0);
+                              const targetDate = new Date(date);
+                              targetDate.setUTCHours(0,0,0,0);
+                              return sDate.getTime() === targetDate.getTime();
+                          });
+
+                          // Disable past dates without sessions
+                          return date < today && !sessionExists;
                       }}
                       initialFocus
                     />
@@ -161,9 +193,7 @@ export default function SessionsDashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredSessions.map(session => {
             const group = getGroupById(session.groupId);
-            // Calculate number of athletes in group from the groups data
-            const groupDetails = groups.find(g => g.id === session.groupId);
-            const athleteCount = groupDetails?.athletes?.length || 0;
+            const athleteCount = athleteCounts[session.groupId] || 0;
 
             return (
               <Card key={session.id}>

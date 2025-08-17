@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -38,7 +39,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose
+  DialogClose,
+  DialogTrigger
 } from "@/components/ui/dialog"
 import {
   Select,
@@ -48,8 +50,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getGroups, getCoaches, getAbsenceReasons, getAthletes } from "@/lib/data";
+import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup } from "@/lib/data";
 import { AppLogo } from '@/components/icons';
 import { UserPlus, PlusCircle, Trash2, Edit } from 'lucide-react';
 import type { Athlete, Group, Coach, AbsenceReason } from '@/types';
@@ -62,7 +63,8 @@ export default function SettingsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [absenceReasons, setAbsenceReasons] = useState<AbsenceReason[]>([]);
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [athletesByGroup, setAthletesByGroup] = useState<Record<string, Athlete[]>>({});
+
   const [loading, setLoading] = useState(true);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -74,16 +76,21 @@ export default function SettingsPage() {
   useEffect(() => {
     async function fetchData() {
         setLoading(true);
-        const [groupsData, coachesData, reasonsData, athletesData] = await Promise.all([
+        const [groupsData, coachesData, reasonsData] = await Promise.all([
             getGroups(),
             getCoaches(),
             getAbsenceReasons(),
-            getAthletes()
         ]);
         setGroups(groupsData);
         setCoaches(coachesData);
         setAbsenceReasons(reasonsData);
-        setAthletes(athletesData);
+
+        const athletesData: Record<string, Athlete[]> = {};
+        for(const group of groupsData) {
+            athletesData[group.id] = await getAthletesInGroup(group.id);
+        }
+        setAthletesByGroup(athletesData);
+        
         setLoading(false);
     }
     fetchData();
@@ -122,10 +129,8 @@ export default function SettingsPage() {
     // In a real app, we would refetch the data or apply optimistic updates
   };
 
-  const getAthletesInGroup = (group: Group) => {
-    // This logic may need to change depending on the data model in Firestore
-    // For now, we assume group.athletes is an array of athlete objects.
-    return group.athletes || [];
+  const getAthletesInGroupFromState = (groupId: string) => {
+    return athletesByGroup[groupId] || [];
   }
 
   if (loading) {
@@ -172,7 +177,7 @@ export default function SettingsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                            {getAthletesInGroup(group).map(athlete => (
+                            {getAthletesInGroupFromState(group.id).map(athlete => (
                                 <TableRow key={athlete.id}>
                                     <TableCell>{athlete.name}</TableCell>
                                     <TableCell>{athlete.phone}</TableCell>
@@ -211,7 +216,7 @@ export default function SettingsPage() {
                 <TableHeader>
                     <TableRow>
                         <TableHead>שם</TableHead>
-                        <TableHead>תפקיד</TableHead>
+                        <TableHead>טלפון</TableHead>
                          <TableHead className="text-left">פעולות</TableHead>
                     </TableRow>
                 </TableHeader>

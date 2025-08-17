@@ -1,10 +1,8 @@
-import type { Athlete, Group, Coach, AbsenceReason, TrainingSession } from '@/types';
-import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
 
-// Note: The functions below are simplified for the prototype.
-// In a real-world scenario, you'd have more robust error handling,
-// data validation (e.g., using Zod), and potentially data transformation.
+import type { Athlete, Group, Coach, AbsenceReason, TrainingSession, AttendanceRecord } from '@/types';
+import { db } from './firebase';
+import { collection, getDocs, doc, getDoc, query, where, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
+
 
 export async function getCoaches(): Promise<Coach[]> {
     const coachesCol = collection(db, 'coaches');
@@ -22,28 +20,57 @@ export async function getCoachByPhone(phone: string): Promise<Coach | null> {
     return { id: doc.id, ...doc.data() } as Coach;
 }
 
-
 export async function getAthletes(): Promise<Athlete[]> {
     const athletesCol = collection(db, 'athletes');
     const snapshot = await getDocs(athletesCol);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Athlete));
 }
 
+export async function getAthletesInGroup(groupId: string): Promise<Athlete[]> {
+    const q = query(collection(db, "athletes"), where("groupId", "==", groupId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Athlete));
+}
+
+
 export async function getGroups(): Promise<Group[]> {
     const groupsCol = collection(db, 'groups');
     const snapshot = await getDocs(groupsCol);
-    const groups = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
-    
-    // In a real app, athlete data would be linked by reference.
-    // For this prototype, we will assume athlete details are embedded or we fetch them separately if needed.
-    // This simplified version just returns the group structure.
-    // A more complex implementation would fetch athlete objects based on an array of IDs.
-    return groups;
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
 }
+
+export async function getGroupById(id: string): Promise<Group | null> {
+    const groupRef = doc(db, 'groups', id);
+    const docSnap = await getDoc(groupRef);
+    if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as Group;
+    } else {
+        return null;
+    }
+}
+
 
 export async function getAbsenceReasons(): Promise<AbsenceReason[]> {
     const reasonsCol = collection(db, 'absenceReasons');
     const snapshot = await getDocs(reasonsCol);
+    if (snapshot.empty) {
+        // Create default reasons if none exist
+        const defaultReasons = [
+            { label: 'חופשה' },
+            { label: 'פציעה' },
+            { label: 'מחלה' },
+            { label: 'אחר' },
+        ];
+        const batch = writeBatch(db);
+        defaultReasons.forEach(reason => {
+            const docRef = doc(collection(db, "absenceReasons"));
+            batch.set(docRef, reason);
+        });
+        await batch.commit();
+        // Refetch after creation
+        const newSnapshot = await getDocs(reasonsCol);
+        return newSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AbsenceReason));
+    }
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AbsenceReason));
 }
 
@@ -64,12 +91,14 @@ export async function getTrainingSessionById(id: string): Promise<TrainingSessio
     }
 }
 
-// --- Hardcoded data for features not yet migrated ---
+// --- WRITE OPERATIONS ---
 
-// This will be replaced by a fetch from Firestore as well.
-export const absenceReasons: AbsenceReason[] = [
-  { id: 'r1', label: 'חופשה' },
-  { id: 'r2', label: 'פציעה' },
-  { id: 'r3', label: 'מחלה' },
-  { id: 'r4', label: 'אחר' },
-];
+export async function addTrainingSession(session: Omit<TrainingSession, 'id'>): Promise<TrainingSession> {
+    const docRef = await addDoc(collection(db, 'trainingSessions'), session);
+    return { id: docRef.id, ...session };
+}
+
+export async function updateAttendance(sessionId: string, attendance: Record<string, AttendanceRecord>): Promise<void> {
+    const sessionRef = doc(db, 'trainingSessions', sessionId);
+    await updateDoc(sessionRef, { attendance });
+}
