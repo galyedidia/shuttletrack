@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -92,23 +91,32 @@ export default function SettingsPage() {
 
   const fetchAllData = useCallback(async () => {
     setLoading(true);
-    const [groupsData, coachesData, reasonsData] = await Promise.all([
-        getGroups(),
-        getCoaches(),
-        getAbsenceReasons(),
-    ]);
-    setGroups(groupsData);
-    setCoaches(coachesData);
-    setAbsenceReasons(reasonsData);
+    try {
+        const [groupsData, coachesData, reasonsData] = await Promise.all([
+            getGroups(),
+            getCoaches(),
+            getAbsenceReasons(),
+        ]);
+        setGroups(groupsData);
+        setCoaches(coachesData);
+        setAbsenceReasons(reasonsData);
 
-    const athletesData: Record<string, Athlete[]> = {};
-    for(const group of groupsData) {
-        athletesData[group.id] = await getAthletesInGroup(group.id);
+        const athletesData: Record<string, Athlete[]> = {};
+        for(const group of groupsData) {
+            athletesData[group.id] = await getAthletesInGroup(group.id);
+        }
+        setAthletesByGroup(athletesData);
+    } catch (error) {
+        console.error("Failed to fetch data:", error);
+        toast({
+            title: "שגיאה בטעינת נתונים",
+            description: "לא ניתן היה לטעון את הנתונים מהשרת.",
+            variant: "destructive"
+        });
+    } finally {
+        setLoading(false);
     }
-    setAthletesByGroup(athletesData);
-    
-    setLoading(false);
-  }, []);
+  }, [toast]);
   
   useEffect(() => {
     fetchAllData();
@@ -225,77 +233,84 @@ export default function SettingsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <Accordion type="single" collapsible className="w-full" defaultValue={groups[0]?.id}>
-              {groups.map(group => (
-                <AccordionItem value={group.id} key={group.id}>
-                  <AccordionTrigger className="text-lg font-medium hover:no-underline">
-                    <div className="flex items-center gap-4 flex-1">
-                        <span className="flex-1 text-right">{group.name}</span>
-                        <div className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenGroupDialog(group)}>
-                                <Edit className="h-4 w-4" />
-                            </Button>
-                            
-                            <AlertDialog onOpenChange={(isOpen) => !isOpen && setGroupToDelete(null)}>
-                                <AlertDialogTrigger asChild>
-                                     <Button variant="ghost" size="icon" onClick={() => setGroupToDelete(group)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        פעולה זו תמחק את הקבוצה "{groupToDelete?.name}" לצמיתות. לא ניתן לבטל פעולה זו.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>ביטול</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDeleteGroup}>מחק</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                           
-                        </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4 p-4">
-                        <Button variant="outline" size="sm" className="mb-4">
-                            <UserPlus className="me-2 h-4 w-4" /> הוסף ספורטאי לקבוצה
-                        </Button>
-                        {getAthletesInGroupFromState(group.id).length > 0 ? (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>שם</TableHead>
-                                    <TableHead>טלפון</TableHead>
-                                    <TableHead className="text-left">פעולות</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                            {getAthletesInGroupFromState(group.id).map(athlete => (
-                                <TableRow key={athlete.id}>
-                                    <TableCell>{athlete.name}</TableCell>
-                                    <TableCell>{athlete.phone}</TableCell>
-                                    <TableCell className="text-left">
-                                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(athlete, group)}>
-                                            <Edit className="h-4 w-4" />
+            {groups.length > 0 ? (
+                <Accordion type="single" collapsible className="w-full" defaultValue={groups[0]?.id}>
+                {groups.map(group => (
+                    <AccordionItem value={group.id} key={group.id}>
+                    <AccordionTrigger className="text-lg font-medium hover:no-underline">
+                        <div className="flex items-center gap-4 flex-1">
+                            <span className="flex-1 text-right">{group.name}</span>
+                            <div className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenGroupDialog(group)}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                                
+                                <AlertDialog onOpenChange={(isOpen) => !isOpen && setGroupToDelete(null)}>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" onClick={() => setGroupToDelete(group)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
-                                        <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            </TableBody>
-                        </Table>
-                         ) : (
-                            <p className="text-sm text-muted-foreground text-center py-4">עדיין אין ספורטאים בקבוצה זו.</p>
-                        )}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            פעולה זו תמחק את הקבוצה "{groupToDelete?.name}" לצמיתות. לא ניתן לבטל פעולה זו.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>ביטול</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteGroup}>מחק</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            
+                            </div>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <div className="space-y-4 p-4">
+                            <Button variant="outline" size="sm" className="mb-4">
+                                <UserPlus className="me-2 h-4 w-4" /> הוסף ספורטאי לקבוצה
+                            </Button>
+                            {getAthletesInGroupFromState(group.id).length > 0 ? (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>שם</TableHead>
+                                        <TableHead>טלפון</TableHead>
+                                        <TableHead className="text-left">פעולות</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                {getAthletesInGroupFromState(group.id).map(athlete => (
+                                    <TableRow key={athlete.id}>
+                                        <TableCell>{athlete.name}</TableCell>
+                                        <TableCell>{athlete.phone}</TableCell>
+                                        <TableCell className="text-left">
+                                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(athlete, group)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                </TableBody>
+                            </Table>
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center py-4">עדיין אין ספורטאים בקבוצה זו.</p>
+                            )}
+                        </div>
+                    </AccordionContent>
+                    </AccordionItem>
+                ))}
+                </Accordion>
+            ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                    <p>לא נמצאו קבוצות.</p>
+                    <p className="mt-2">לחץ על "הוסף קבוצה חדשה" כדי להתחיל.</p>
+                </div>
+            )}
           </CardContent>
         </Card>
       </TabsContent>
@@ -456,3 +471,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    
