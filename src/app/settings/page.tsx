@@ -107,10 +107,10 @@ export default function SettingsPage() {
         }
         setAthletesByGroup(athletesData);
     } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.error("Failed to fetch settings data:", error);
         toast({
             title: "שגיאה בטעינת נתונים",
-            description: "לא ניתן היה לטעון את הנתונים מהשרת.",
+            description: "לא ניתן היה לטעון את הגדרות המערכת. אנא נסה לרענן את העמוד.",
             variant: "destructive"
         });
     } finally {
@@ -471,7 +471,5 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    
 
     
