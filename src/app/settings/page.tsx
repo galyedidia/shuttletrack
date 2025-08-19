@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -43,6 +43,17 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -50,7 +61,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup } from "@/lib/data";
+import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup } from "@/lib/data";
 import { AppLogo } from '@/components/icons';
 import { UserPlus, PlusCircle, Trash2, Edit } from 'lucide-react';
 import type { Athlete, Group, Coach, AbsenceReason } from '@/types';
@@ -67,34 +78,41 @@ export default function SettingsPage() {
 
   const [loading, setLoading] = useState(true);
 
+  // State for group management dialogs
+  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
+  const [groupToEdit, setGroupToEdit] = useState<Group | null>(null);
+  const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
+  const [newGroupName, setNewGroupName] = useState("");
+
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedAthlete, setSelectedAthlete] = useState<{ athlete: Athlete; group: Group } | null>(null);
   const [editedName, setEditedName] = useState("");
   const [editedPhone, setEditedPhone] = useState("");
   const [targetGroupId, setTargetGroupId] = useState("");
+
+  const fetchAllData = useCallback(async () => {
+    setLoading(true);
+    const [groupsData, coachesData, reasonsData] = await Promise.all([
+        getGroups(),
+        getCoaches(),
+        getAbsenceReasons(),
+    ]);
+    setGroups(groupsData);
+    setCoaches(coachesData);
+    setAbsenceReasons(reasonsData);
+
+    const athletesData: Record<string, Athlete[]> = {};
+    for(const group of groupsData) {
+        athletesData[group.id] = await getAthletesInGroup(group.id);
+    }
+    setAthletesByGroup(athletesData);
+    
+    setLoading(false);
+  }, []);
   
   useEffect(() => {
-    async function fetchData() {
-        setLoading(true);
-        const [groupsData, coachesData, reasonsData] = await Promise.all([
-            getGroups(),
-            getCoaches(),
-            getAbsenceReasons(),
-        ]);
-        setGroups(groupsData);
-        setCoaches(coachesData);
-        setAbsenceReasons(reasonsData);
-
-        const athletesData: Record<string, Athlete[]> = {};
-        for(const group of groupsData) {
-            athletesData[group.id] = await getAthletesInGroup(group.id);
-        }
-        setAthletesByGroup(athletesData);
-        
-        setLoading(false);
-    }
-    fetchData();
-  }, []);
+    fetchAllData();
+  }, [fetchAllData]);
 
   const handleEditClick = (athlete: Athlete, group: Group) => {
     setSelectedAthlete({ athlete, group });
@@ -109,7 +127,6 @@ export default function SettingsPage() {
 
     const { athlete, group: originalGroup } = selectedAthlete;
     
-    // This will be replaced with a Firestore update call
     console.log("Saving changes to Firestore:", {
         athleteId: athlete.id,
         newName: editedName,
@@ -118,7 +135,6 @@ export default function SettingsPage() {
         newGroupId: targetGroupId,
     });
     
-
     toast({
         title: "השינויים נשמרו",
         description: `פרטי הספורטאי ${editedName} עודכנו בהצלחה.`,
@@ -126,15 +142,65 @@ export default function SettingsPage() {
 
     setIsEditDialogOpen(false);
     setSelectedAthlete(null);
-    // In a real app, we would refetch the data or apply optimistic updates
   };
 
   const getAthletesInGroupFromState = (groupId: string) => {
     return athletesByGroup[groupId] || [];
   }
 
+  // Group Management Handlers
+  const handleOpenGroupDialog = (group: Group | null = null) => {
+    setGroupToEdit(group);
+    setNewGroupName(group?.name || "");
+    setIsGroupDialogOpen(true);
+  }
+
+  const handleCloseGroupDialog = () => {
+    setIsGroupDialogOpen(false);
+    setGroupToEdit(null);
+    setNewGroupName("");
+  }
+
+  const handleSaveGroup = async () => {
+    if (!newGroupName.trim()) {
+        toast({ title: "שם הקבוצה ריק", description: "יש להזין שם לקבוצה.", variant: "destructive" });
+        return;
+    }
+
+    try {
+        if (groupToEdit) {
+            // Update existing group
+            await updateGroup(groupToEdit.id, newGroupName);
+            toast({ title: "קבוצה עודכנה", description: `הקבוצה ${newGroupName} עודכנה בהצלחה.` });
+        } else {
+            // Create new group
+            await addGroup(newGroupName);
+            toast({ title: "קבוצה נוצרה", description: `הקבוצה ${newGroupName} נוצרה בהצלחה.` });
+        }
+        await fetchAllData(); // Refetch all data to show changes
+    } catch(error) {
+        toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת הקבוצה.", variant: "destructive" });
+    } finally {
+        handleCloseGroupDialog();
+    }
+  }
+
+  const handleDeleteGroup = async () => {
+    if (!groupToDelete) return;
+    try {
+        await deleteGroup(groupToDelete.id);
+        toast({ title: "קבוצה נמחקה", description: `הקבוצה ${groupToDelete.name} נמחקה בהצלחה.` });
+        await fetchAllData();
+    } catch(error) {
+        toast({ title: "שגיאה", description: "אירעה שגיאה בעת מחיקת הקבוצה.", variant: "destructive" });
+    } finally {
+        setGroupToDelete(null);
+    }
+  }
+
+
   if (loading) {
-      return <div>טוען הגדרות...</div>
+      return <div className="flex h-screen w-full items-center justify-center">טוען הגדרות...</div>
   }
 
   return (
@@ -155,19 +221,50 @@ export default function SettingsPage() {
                     <CardTitle>ניהול קבוצות וספורטאים</CardTitle>
                     <CardDescription>הוסף, ערוך ומחק קבוצות וספורטאים.</CardDescription>
                 </div>
-                <Button><PlusCircle className="me-2 h-4 w-4" />הוסף קבוצה חדשה</Button>
+                <Button onClick={() => handleOpenGroupDialog()}><PlusCircle className="me-2 h-4 w-4" />הוסף קבוצה חדשה</Button>
             </div>
           </CardHeader>
           <CardContent>
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion type="single" collapsible className="w-full" defaultValue={groups[0]?.id}>
               {groups.map(group => (
                 <AccordionItem value={group.id} key={group.id}>
-                  <AccordionTrigger className="text-lg font-medium">{group.name}</AccordionTrigger>
+                  <AccordionTrigger className="text-lg font-medium hover:no-underline">
+                    <div className="flex items-center gap-4 flex-1">
+                        <span className="flex-1 text-right">{group.name}</span>
+                        <div className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenGroupDialog(group)}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                            
+                            <AlertDialog onOpenChange={(isOpen) => !isOpen && setGroupToDelete(null)}>
+                                <AlertDialogTrigger asChild>
+                                     <Button variant="ghost" size="icon" onClick={() => setGroupToDelete(group)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        פעולה זו תמחק את הקבוצה "{groupToDelete?.name}" לצמיתות. לא ניתן לבטל פעולה זו.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>ביטול</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteGroup}>מחק</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                           
+                        </div>
+                    </div>
+                  </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-4 p-4">
                         <Button variant="outline" size="sm" className="mb-4">
                             <UserPlus className="me-2 h-4 w-4" /> הוסף ספורטאי לקבוצה
                         </Button>
+                        {getAthletesInGroupFromState(group.id).length > 0 ? (
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -191,6 +288,9 @@ export default function SettingsPage() {
                             ))}
                             </TableBody>
                         </Table>
+                         ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">עדיין אין ספורטאים בקבוצה זו.</p>
+                        )}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
@@ -290,6 +390,29 @@ export default function SettingsPage() {
         </Card>
       </TabsContent>
     </Tabs>
+    
+    {/* Group Edit/Create Dialog */}
+    <Dialog open={isGroupDialogOpen} onOpenChange={handleCloseGroupDialog}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{groupToEdit ? 'עריכת שם קבוצה' : 'יצירת קבוצה חדשה'}</DialogTitle>
+                <DialogDescription>
+                  {groupToEdit ? 'שנה את שם הקבוצה ולחץ על שמור.' : 'הזן את שם הקבוצה החדשה ולחץ על יצירה.'}
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <Label htmlFor="group-name">שם הקבוצה</Label>
+                <Input id="group-name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="mt-2" placeholder="לדוגמה: בוגרים"/>
+            </div>
+            <DialogFooter>
+                 <DialogClose asChild>
+                    <Button variant="outline">ביטול</Button>
+                </DialogClose>
+                <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
 
     <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>

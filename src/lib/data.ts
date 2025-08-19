@@ -1,7 +1,7 @@
 
 import type { Athlete, Group, Coach, AbsenceReason, TrainingSession, AttendanceRecord } from '@/types';
 import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, query, where, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, addDoc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 
 
 export async function getCoaches(): Promise<Coach[]> {
@@ -16,8 +16,8 @@ export async function getCoachByPhone(phone: string): Promise<Coach | null> {
     if (snapshot.empty) {
         return null;
     }
-    const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() } as Coach;
+    const docData = snapshot.docs[0];
+    return { id: docData.id, ...docData.data() } as Coach;
 }
 
 export async function getAthletes(): Promise<Athlete[]> {
@@ -36,7 +36,9 @@ export async function getAthletesInGroup(groupId: string): Promise<Athlete[]> {
 export async function getGroups(): Promise<Group[]> {
     const groupsCol = collection(db, 'groups');
     const snapshot = await getDocs(groupsCol);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
+    // Sort groups by name alphabetically
+    const groups = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
+    return groups.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function getGroupById(id: string): Promise<Group | null> {
@@ -101,4 +103,21 @@ export async function addTrainingSession(session: Omit<TrainingSession, 'id'>): 
 export async function updateAttendance(sessionId: string, attendance: Record<string, AttendanceRecord>): Promise<void> {
     const sessionRef = doc(db, 'trainingSessions', sessionId);
     await updateDoc(sessionRef, { attendance });
+}
+
+// --- Group Management ---
+export async function addGroup(name: string): Promise<Group> {
+    const docRef = await addDoc(collection(db, 'groups'), { name });
+    return { id: docRef.id, name };
+}
+
+export async function updateGroup(id: string, name: string): Promise<void> {
+    const groupRef = doc(db, 'groups', id);
+    await updateDoc(groupRef, { name });
+}
+
+export async function deleteGroup(id: string): Promise<void> {
+    // TODO: Decide on what to do with athletes in the group. For now, just delete the group.
+    const groupRef = doc(db, 'groups', id);
+    await deleteDoc(groupRef);
 }
