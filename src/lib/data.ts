@@ -55,24 +55,6 @@ export async function getGroupById(id: string): Promise<Group | null> {
 export async function getAbsenceReasons(): Promise<AbsenceReason[]> {
     const reasonsCol = collection(db, 'absenceReasons');
     const snapshot = await getDocs(reasonsCol);
-    if (snapshot.empty) {
-        // Create default reasons if none exist
-        const defaultReasons = [
-            { label: 'חופשה' },
-            { label: 'פציעה' },
-            { label: 'מחלה' },
-            { label: 'אחר' },
-        ];
-        const batch = writeBatch(db);
-        defaultReasons.forEach(reason => {
-            const docRef = doc(collection(db, "absenceReasons"));
-            batch.set(docRef, reason);
-        });
-        await batch.commit();
-        // Refetch after creation
-        const newSnapshot = await getDocs(reasonsCol);
-        return newSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AbsenceReason));
-    }
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AbsenceReason));
 }
 
