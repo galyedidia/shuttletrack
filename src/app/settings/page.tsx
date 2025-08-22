@@ -183,15 +183,14 @@ export default function SettingsPage() {
 
     try {
         if (groupToEdit) {
-            // Update existing group
             await updateGroup(groupToEdit.id, newGroupName);
             toast({ title: "קבוצה עודכנה", description: `הקבוצה ${newGroupName} עודכנה בהצלחה.` });
         } else {
-            // Create new group
-            await addGroup(newGroupName);
+            const newGroup = await addGroup(newGroupName);
+            setGroups(prev => [...prev, newGroup].sort((a, b) => a.name.localeCompare(b.name)));
             toast({ title: "קבוצה נוצרה", description: `הקבוצה ${newGroupName} נוצרה בהצלחה.` });
         }
-        await fetchAllData(); // Refetch all data to show changes
+        await fetchAllData();
     } catch(error) {
         toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת הקבוצה.", variant: "destructive" });
     } finally {
@@ -479,3 +478,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    
