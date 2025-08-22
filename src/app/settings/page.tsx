@@ -60,7 +60,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup, addAbsenceReason, deleteAbsenceReason, addCoach, deleteCoach } from "@/lib/data";
+import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup, addAthlete, updateAthlete, deleteAthlete } from "@/lib/data";
 import { AppLogo } from '@/components/icons';
 import { UserPlus, PlusCircle, Trash2, Edit } from 'lucide-react';
 import type { Athlete, Group, Coach, AbsenceReason } from '@/types';
@@ -83,11 +83,15 @@ export default function SettingsPage() {
   const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
   const [newGroupName, setNewGroupName] = useState("");
 
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedAthlete, setSelectedAthlete] = useState<{ athlete: Athlete; group: Group } | null>(null);
-  const [editedName, setEditedName] = useState("");
-  const [editedPhone, setEditedPhone] = useState("");
-  const [targetGroupId, setTargetGroupId] = useState("");
+  // State for athlete management dialogs
+  const [isAthleteDialogOpen, setIsAthleteDialogOpen] = useState(false);
+  const [athleteToEdit, setAthleteToEdit] = useState<Athlete | null>(null);
+  const [athleteToDelete, setAthleteToDelete] = useState<Athlete | null>(null);
+  const [newAthleteName, setNewAthleteName] = useState("");
+  const [newAthletePhone, setNewAthletePhone] = useState("");
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null); // For creating athlete in the correct group
+  const [targetGroupId, setTargetGroupId] = useState(""); // For moving athlete
+
 
   const fetchAllData = useCallback(async () => {
     setLoading(true);
@@ -127,41 +131,7 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchAllData();
   }, [fetchAllData]);
-
-  const handleEditClick = (athlete: Athlete, group: Group) => {
-    setSelectedAthlete({ athlete, group });
-    setEditedName(athlete.name);
-    setEditedPhone(athlete.phone);
-    setTargetGroupId(group.id);
-    setIsEditDialogOpen(true);
-  };
   
-  const handleSaveChanges = () => {
-    if (!selectedAthlete) return;
-
-    const { athlete, group: originalGroup } = selectedAthlete;
-    
-    console.log("Saving changes to Firestore:", {
-        athleteId: athlete.id,
-        newName: editedName,
-        newPhone: editedPhone,
-        originalGroupId: originalGroup.id,
-        newGroupId: targetGroupId,
-    });
-    
-    toast({
-        title: "השינויים נשמרו",
-        description: `פרטי הספורטאי ${editedName} עודכנו בהצלחה.`,
-    });
-
-    setIsEditDialogOpen(false);
-    setSelectedAthlete(null);
-  };
-
-  const getAthletesInGroupFromState = (groupId: string) => {
-    return athletesByGroup[groupId] || [];
-  }
-
   // Group Management Handlers
   const handleOpenGroupDialog = (group: Group | null = null) => {
     setGroupToEdit(group);
@@ -186,8 +156,7 @@ export default function SettingsPage() {
             await updateGroup(groupToEdit.id, newGroupName);
             toast({ title: "קבוצה עודכנה", description: `הקבוצה ${newGroupName} עודכנה בהצלחה.` });
         } else {
-            const newGroup = await addGroup(newGroupName);
-            setGroups(prev => [...prev, newGroup].sort((a, b) => a.name.localeCompare(b.name)));
+            await addGroup(newGroupName);
             toast({ title: "קבוצה נוצרה", description: `הקבוצה ${newGroupName} נוצרה בהצלחה.` });
         }
         await fetchAllData();
@@ -209,6 +178,68 @@ export default function SettingsPage() {
     } finally {
         setGroupToDelete(null);
     }
+  }
+
+  // Athlete Management Handlers
+  const handleOpenAthleteDialog = (athlete: Athlete | null = null, groupId: string) => {
+      setAthleteToEdit(athlete);
+      setActiveGroupId(groupId);
+      setNewAthleteName(athlete?.name || "");
+      setNewAthletePhone(athlete?.phone || "");
+      setTargetGroupId(athlete?.groupId || groupId);
+      setIsAthleteDialogOpen(true);
+  }
+
+  const handleCloseAthleteDialog = () => {
+      setIsAthleteDialogOpen(false);
+      setAthleteToEdit(null);
+      setActiveGroupId(null);
+      setNewAthleteName("");
+      setNewAthletePhone("");
+      setTargetGroupId("");
+  }
+
+  const handleSaveAthlete = async () => {
+      if (!newAthleteName.trim()) {
+          toast({ title: "שם הספורטאי ריק", description: "יש להזין שם.", variant: "destructive"});
+          return;
+      }
+      if (!activeGroupId && !athleteToEdit) {
+          toast({ title: "שגיאה", description: "לא זוהתה קבוצה לשיוך.", variant: "destructive" });
+          return;
+      }
+      
+      try {
+          if (athleteToEdit) {
+              await updateAthlete(athleteToEdit.id, {
+                  name: newAthleteName,
+                  phone: newAthletePhone,
+                  groupId: targetGroupId
+              });
+              toast({ title: "ספורטאי עודכן", description: `פרטי ${newAthleteName} עודכנו.`});
+          } else if (activeGroupId) {
+              await addAthlete(newAthleteName, newAthletePhone, activeGroupId);
+              toast({ title: "ספורטאי נוסף", description: `${newAthleteName} נוסף לקבוצה.` });
+          }
+          await fetchAllData();
+      } catch (error) {
+          toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת הספורטאי.", variant: "destructive"});
+      } finally {
+          handleCloseAthleteDialog();
+      }
+  }
+
+  const handleDeleteAthlete = async () => {
+      if (!athleteToDelete) return;
+      try {
+          await deleteAthlete(athleteToDelete.id);
+          toast({ title: "ספורטאי נמחק", description: `${athleteToDelete.name} נמחק בהצלחה.`});
+          await fetchAllData();
+      } catch (error) {
+          toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת הספורטאי.", variant: "destructive"});
+      } finally {
+          setAthleteToDelete(null);
+      }
   }
 
 
@@ -275,10 +306,10 @@ export default function SettingsPage() {
                     </AccordionTrigger>
                     <AccordionContent>
                         <div className="space-y-4 p-4">
-                            <Button variant="outline" size="sm" className="mb-4">
+                            <Button variant="outline" size="sm" className="mb-4" onClick={() => handleOpenAthleteDialog(null, group.id)}>
                                 <UserPlus className="me-2 h-4 w-4" /> הוסף ספורטאי לקבוצה
                             </Button>
-                            {getAthletesInGroupFromState(group.id).length > 0 ? (
+                            {(athletesByGroup[group.id] || []).length > 0 ? (
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -288,15 +319,33 @@ export default function SettingsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                {getAthletesInGroupFromState(group.id).map(athlete => (
+                                {(athletesByGroup[group.id] || []).map(athlete => (
                                     <TableRow key={athlete.id}>
                                         <TableCell>{athlete.name}</TableCell>
                                         <TableCell>{athlete.phone}</TableCell>
                                         <TableCell className="text-left">
-                                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(athlete, group)}>
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenAthleteDialog(athlete, group.id)}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                             <AlertDialog onOpenChange={(isOpen) => !isOpen && setAthleteToDelete(null)}>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" onClick={() => setAthleteToDelete(athlete)}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                    <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        פעולה זו תמחק את הספורטאי "{athleteToDelete?.name}" לצמיתות.
+                                                    </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                    <AlertDialogCancel>ביטול</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={handleDeleteAthlete}>מחק</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -428,33 +477,29 @@ export default function SettingsPage() {
                  <DialogClose asChild>
                     <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
                 </DialogClose>
-                <DialogClose asChild>
-                    <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
-                </DialogClose>
+                <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
 
-
-    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+    {/* Athlete Edit/Create Dialog */}
+    <Dialog open={isAthleteDialogOpen} onOpenChange={handleCloseAthleteDialog}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>עריכת פרטי ספורטאי</DialogTitle>
-                <DialogDescription>
-                    ערוך את הפרטים או העבר את הספורטאי לקבוצה אחרת.
-                </DialogDescription>
+                <DialogTitle>{athleteToEdit ? 'עריכת פרטי ספורטאי' : 'הוספת ספורטאי חדש'}</DialogTitle>
             </DialogHeader>
             <div className="py-4 grid gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="name">שם</Label>
-                    <Input id="name" value={editedName} onChange={(e) => setEditedName(e.target.value)} />
+                    <Input id="name" value={newAthleteName} onChange={(e) => setNewAthleteName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="phone">טלפון</Label>
-                    <Input id="phone" value={editedPhone} onChange={(e) => setEditedPhone(e.target.value)} />
+                    <Input id="phone" value={newAthletePhone} onChange={(e) => setNewAthletePhone(e.target.value)} />
                 </div>
+                {athleteToEdit && (
                 <div className="space-y-2">
-                    <Label htmlFor="group">קבוצה</Label>
+                    <Label htmlFor="group">העבר לקבוצה</Label>
                     <Select value={targetGroupId} onValueChange={setTargetGroupId}>
                         <SelectTrigger id="group">
                             <SelectValue placeholder="בחר קבוצה..." />
@@ -466,17 +511,16 @@ export default function SettingsPage() {
                         </SelectContent>
                     </Select>
                 </div>
+                )}
             </div>
             <DialogFooter>
                  <DialogClose asChild>
-                    <Button variant="outline">ביטול</Button>
+                    <Button variant="outline" onClick={handleCloseAthleteDialog}>ביטול</Button>
                 </DialogClose>
-                <Button onClick={handleSaveChanges}>שמור שינויים</Button>
+                <Button onClick={handleSaveAthlete}>{athleteToEdit ? 'שמור שינויים' : 'צור ספורטאי'}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
     </>
   );
 }
-
-    

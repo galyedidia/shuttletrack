@@ -58,6 +58,7 @@ export async function getAbsenceReasons(): Promise<AbsenceReason[]> {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AbsenceReason));
 }
 
+
 export async function getTrainingSessions(): Promise<TrainingSession[]> {
     const sessionsCol = collection(db, 'trainingSessions');
     const snapshot = await getDocs(sessionsCol);
@@ -102,4 +103,21 @@ export async function deleteGroup(id: string): Promise<void> {
     // TODO: Decide on what to do with athletes in the group. For now, just delete the group.
     const groupRef = doc(db, 'groups', id);
     await deleteDoc(groupRef);
+}
+
+
+// --- Athlete Management ---
+export async function addAthlete(name: string, phone: string, groupId: string): Promise<Athlete> {
+    const docRef = await addDoc(collection(db, 'athletes'), { name, phone, groupId });
+    return { id: docRef.id, name, phone, groupId };
+}
+
+export async function updateAthlete(id: string, data: Partial<Pick<Athlete, 'name' | 'phone' | 'groupId'>>): Promise<void> {
+    const athleteRef = doc(db, 'athletes', id);
+    await updateDoc(athleteRef, data);
+}
+
+export async function deleteAthlete(id: string): Promise<void> {
+    const athleteRef = doc(db, 'athletes', id);
+    await deleteDoc(athleteRef);
 }
