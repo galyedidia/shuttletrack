@@ -87,7 +87,8 @@ export default function SettingsPage() {
   const [isAthleteDialogOpen, setIsAthleteDialogOpen] = useState(false);
   const [athleteToEdit, setAthleteToEdit] = useState<Athlete | null>(null);
   const [athleteToDelete, setAthleteToDelete] = useState<Athlete | null>(null);
-  const [newAthleteName, setNewAthleteName] = useState("");
+  const [newAthleteFirstName, setNewAthleteFirstName] = useState("");
+  const [newAthleteLastName, setNewAthleteLastName] = useState("");
   const [newAthletePhone, setNewAthletePhone] = useState("");
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null); // For creating athlete in the correct group
   const [targetGroupId, setTargetGroupId] = useState(""); // For moving athlete
@@ -152,14 +153,17 @@ export default function SettingsPage() {
     }
 
     try {
+        let updatedGroups = [...groups];
         if (groupToEdit) {
             await updateGroup(groupToEdit.id, newGroupName);
+            updatedGroups = groups.map(g => g.id === groupToEdit.id ? { ...g, name: newGroupName } : g);
             toast({ title: "קבוצה עודכנה", description: `הקבוצה ${newGroupName} עודכנה בהצלחה.` });
         } else {
-            await addGroup(newGroupName);
+            const newGroup = await addGroup(newGroupName);
+            updatedGroups.push(newGroup);
             toast({ title: "קבוצה נוצרה", description: `הקבוצה ${newGroupName} נוצרה בהצלחה.` });
         }
-        await fetchAllData();
+        setGroups(updatedGroups.sort((a, b) => a.name.localeCompare(b.name)));
     } catch(error) {
         toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת הקבוצה.", variant: "destructive" });
     } finally {
@@ -184,7 +188,8 @@ export default function SettingsPage() {
   const handleOpenAthleteDialog = (athlete: Athlete | null = null, groupId: string) => {
       setAthleteToEdit(athlete);
       setActiveGroupId(groupId);
-      setNewAthleteName(athlete?.name || "");
+      setNewAthleteFirstName(athlete?.firstName || "");
+      setNewAthleteLastName(athlete?.lastName || "");
       setNewAthletePhone(athlete?.phone || "");
       setTargetGroupId(athlete?.groupId || groupId);
       setIsAthleteDialogOpen(true);
@@ -194,14 +199,15 @@ export default function SettingsPage() {
       setIsAthleteDialogOpen(false);
       setAthleteToEdit(null);
       setActiveGroupId(null);
-      setNewAthleteName("");
+      setNewAthleteFirstName("");
+      setNewAthleteLastName("");
       setNewAthletePhone("");
       setTargetGroupId("");
   }
 
   const handleSaveAthlete = async () => {
-      if (!newAthleteName.trim()) {
-          toast({ title: "שם הספורטאי ריק", description: "יש להזין שם.", variant: "destructive"});
+      if (!newAthleteFirstName.trim() || !newAthleteLastName.trim()) {
+          toast({ title: "שם הספורטאי אינו מלא", description: "יש להזין שם פרטי ושם משפחה.", variant: "destructive"});
           return;
       }
       if (!activeGroupId && !athleteToEdit) {
@@ -212,14 +218,15 @@ export default function SettingsPage() {
       try {
           if (athleteToEdit) {
               await updateAthlete(athleteToEdit.id, {
-                  name: newAthleteName,
+                  firstName: newAthleteFirstName,
+                  lastName: newAthleteLastName,
                   phone: newAthletePhone,
                   groupId: targetGroupId
               });
-              toast({ title: "ספורטאי עודכן", description: `פרטי ${newAthleteName} עודכנו.`});
+              toast({ title: "ספורטאי עודכן", description: `פרטי ${newAthleteFirstName} ${newAthleteLastName} עודכנו.`});
           } else if (activeGroupId) {
-              await addAthlete(newAthleteName, newAthletePhone, activeGroupId);
-              toast({ title: "ספורטאי נוסף", description: `${newAthleteName} נוסף לקבוצה.` });
+              await addAthlete(newAthleteFirstName, newAthleteLastName, newAthletePhone, activeGroupId);
+              toast({ title: "ספורטאי נוסף", description: `${newAthleteFirstName} ${newAthleteLastName} נוסף לקבוצה.` });
           }
           await fetchAllData();
       } catch (error) {
@@ -233,7 +240,7 @@ export default function SettingsPage() {
       if (!athleteToDelete) return;
       try {
           await deleteAthlete(athleteToDelete.id);
-          toast({ title: "ספורטאי נמחק", description: `${athleteToDelete.name} נמחק בהצלחה.`});
+          toast({ title: "ספורטאי נמחק", description: `${athleteToDelete.firstName} ${athleteToDelete.lastName} נמחק בהצלחה.`});
           await fetchAllData();
       } catch (error) {
           toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת הספורטאי.", variant: "destructive"});
@@ -313,7 +320,8 @@ export default function SettingsPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>שם</TableHead>
+                                        <TableHead>שם פרטי</TableHead>
+                                        <TableHead>שם משפחה</TableHead>
                                         <TableHead>טלפון</TableHead>
                                         <TableHead className="text-left">פעולות</TableHead>
                                     </TableRow>
@@ -321,7 +329,8 @@ export default function SettingsPage() {
                                 <TableBody>
                                 {(athletesByGroup[group.id] || []).map(athlete => (
                                     <TableRow key={athlete.id}>
-                                        <TableCell>{athlete.name}</TableCell>
+                                        <TableCell>{athlete.firstName}</TableCell>
+                                        <TableCell>{athlete.lastName}</TableCell>
                                         <TableCell>{athlete.phone}</TableCell>
                                         <TableCell className="text-left">
                                             <Button variant="ghost" size="icon" onClick={() => handleOpenAthleteDialog(athlete, group.id)}>
@@ -337,7 +346,7 @@ export default function SettingsPage() {
                                                     <AlertDialogHeader>
                                                     <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
                                                     <AlertDialogDescription>
-                                                        פעולה זו תמחק את הספורטאי "{athleteToDelete?.name}" לצמיתות.
+                                                        פעולה זו תמחק את הספורטאי "{athleteToDelete?.firstName} {athleteToDelete?.lastName}" לצמיתות.
                                                     </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
@@ -477,7 +486,9 @@ export default function SettingsPage() {
                  <DialogClose asChild>
                     <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
                 </DialogClose>
-                <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
+                <DialogClose asChild>
+                  <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
+                </DialogClose>
             </DialogFooter>
         </DialogContent>
     </Dialog>
@@ -490,8 +501,12 @@ export default function SettingsPage() {
             </DialogHeader>
             <div className="py-4 grid gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="name">שם</Label>
-                    <Input id="name" value={newAthleteName} onChange={(e) => setNewAthleteName(e.target.value)} />
+                    <Label htmlFor="firstName">שם פרטי</Label>
+                    <Input id="firstName" value={newAthleteFirstName} onChange={(e) => setNewAthleteFirstName(e.target.value)} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="lastName">שם משפחה</Label>
+                    <Input id="lastName" value={newAthleteLastName} onChange={(e) => setNewAthleteLastName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="phone">טלפון</Label>

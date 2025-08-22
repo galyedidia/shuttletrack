@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -86,7 +87,7 @@ export default function AnalysisPage() {
             </SelectTrigger>
             <SelectContent>
               {athletes.map(athlete => (
-                <SelectItem key={athlete.id} value={athlete.id}>{athlete.name}</SelectItem>
+                <SelectItem key={athlete.id} value={athlete.id}>{`${athlete.firstName} ${athlete.lastName}`}</SelectItem>
               ))}
             </SelectContent>
           </Select>

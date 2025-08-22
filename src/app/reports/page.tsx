@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -26,8 +27,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FileDown } from 'lucide-react';
-import { groups } from '@/lib/data';
+import { getGroups } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
+import type { Group } from '@/types';
 
 const months = [
   { value: 1, label: 'ינואר' }, { value: 2, label: 'פברואר' }, { value: 3, label: 'מרץ' },
@@ -38,24 +40,44 @@ const months = [
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
-// Mock data for report preview
-const reportData = groups[0].athletes.map(athlete => ({
-  name: athlete.name,
-  attendancePercentage: Math.floor(Math.random() * 31) + 70, // 70-100%
-  averageRating: (Math.random() * 2 + 3).toFixed(1), // 3.0-5.0
-  absences: Math.floor(Math.random() * 4),
-}));
+// Mock data for report preview - will be replaced with real data later
+const mockReportData = [
+    { name: 'ישראל ישראלי', attendancePercentage: 95, averageRating: 4.5, absences: 1},
+    { name: 'דנה לוי', attendancePercentage: 88, averageRating: 4.1, absences: 2},
+]
 
 export default function ReportsPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [selectedGroup, setSelectedGroup] = useState(groups[0].id);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+   useEffect(() => {
+    async function fetchGroups() {
+        setLoading(true);
+        const groupsData = await getGroups();
+        setGroups(groupsData);
+        if (groupsData.length > 0) {
+            setSelectedGroup(groupsData[0].id);
+        }
+        setLoading(false);
+    }
+    fetchGroups();
+  }, []);
+
 
   const handleExport = () => {
     // Logic for exporting to Excel would go here
     alert(`מייצא דוח עבור ${months.find(m => m.value === selectedMonth)?.label} ${selectedYear}...`);
   };
   
+  const selectedGroupName = groups.find(g => g.id === selectedGroup)?.name || '...';
+  
+  if (loading) {
+      return <div>טוען נתונים...</div>
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -99,7 +121,7 @@ export default function ReportsPage() {
         </div>
       </CardHeader>
       <CardContent>
-        <h3 className="font-semibold mb-4">תצוגה מקדימה: {groups.find(g => g.id === selectedGroup)?.name}</h3>
+        <h3 className="font-semibold mb-4">תצוגה מקדימה: {selectedGroupName}</h3>
         <Table>
           <TableHeader>
             <TableRow>
@@ -110,7 +132,7 @@ export default function ReportsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {reportData.map((row) => (
+            {mockReportData.map((row) => (
               <TableRow key={row.name}>
                 <TableCell className="font-medium">{row.name}</TableCell>
                 <TableCell className="text-center">

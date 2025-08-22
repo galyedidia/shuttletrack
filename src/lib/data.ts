@@ -107,12 +107,12 @@ export async function deleteGroup(id: string): Promise<void> {
 
 
 // --- Athlete Management ---
-export async function addAthlete(name: string, phone: string, groupId: string): Promise<Athlete> {
-    const docRef = await addDoc(collection(db, 'athletes'), { name, phone, groupId });
-    return { id: docRef.id, name, phone, groupId };
+export async function addAthlete(firstName: string, lastName: string, phone: string, groupId: string): Promise<Athlete> {
+    const docRef = await addDoc(collection(db, 'athletes'), { firstName, lastName, phone, groupId });
+    return { id: docRef.id, firstName, lastName, phone, groupId };
 }
 
-export async function updateAthlete(id: string, data: Partial<Pick<Athlete, 'name' | 'phone' | 'groupId'>>): Promise<void> {
+export async function updateAthlete(id: string, data: Partial<Pick<Athlete, 'firstName' | 'lastName' | 'phone' | 'groupId'>>): Promise<void> {
     const athleteRef = doc(db, 'athletes', id);
     await updateDoc(athleteRef, data);
 }

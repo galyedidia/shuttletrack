@@ -1,7 +1,8 @@
 
 export interface Athlete {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   phone: string;
   groupId: string; // Add groupId to athlete
 }
