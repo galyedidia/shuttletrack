@@ -60,7 +60,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup } from "@/lib/data";
+import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup, addAbsenceReason, deleteAbsenceReason, addCoach, deleteCoach } from "@/lib/data";
 import { AppLogo } from '@/components/icons';
 import { UserPlus, PlusCircle, Trash2, Edit } from 'lucide-react';
 import type { Athlete, Group, Coach, AbsenceReason } from '@/types';
@@ -97,13 +97,19 @@ export default function SettingsPage() {
             getCoaches(),
             getAbsenceReasons(),
         ]);
+
         setGroups(groupsData);
         setCoaches(coachesData);
         setAbsenceReasons(reasonsData);
 
         const athletesData: Record<string, Athlete[]> = {};
         for(const group of groupsData) {
-            athletesData[group.id] = await getAthletesInGroup(group.id);
+            try {
+               athletesData[group.id] = await getAthletesInGroup(group.id);
+            } catch (groupError) {
+                console.error(`Failed to get athletes for group ${group.id}`, groupError);
+                athletesData[group.id] = [];
+            }
         }
         setAthletesByGroup(athletesData);
     } catch (error) {
@@ -407,7 +413,7 @@ export default function SettingsPage() {
     </Tabs>
     
     {/* Group Edit/Create Dialog */}
-    <Dialog open={isGroupDialogOpen} onOpenChange={handleCloseGroupDialog}>
+    <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>{groupToEdit ? 'עריכת שם קבוצה' : 'יצירת קבוצה חדשה'}</DialogTitle>
@@ -421,9 +427,11 @@ export default function SettingsPage() {
             </div>
             <DialogFooter>
                  <DialogClose asChild>
-                    <Button variant="outline">ביטול</Button>
+                    <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
                 </DialogClose>
-                <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
+                <DialogClose asChild>
+                    <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
+                </DialogClose>
             </DialogFooter>
         </DialogContent>
     </Dialog>
@@ -471,5 +479,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    
