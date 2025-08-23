@@ -121,3 +121,19 @@ export async function deleteAthlete(id: string): Promise<void> {
     const athleteRef = doc(db, 'athletes', id);
     await deleteDoc(athleteRef);
 }
+
+// --- Coach Management ---
+export async function addCoach(name: string, phone: string): Promise<Coach> {
+    const docRef = await addDoc(collection(db, 'coaches'), { name, phone });
+    return { id: docRef.id, name, phone };
+}
+
+export async function updateCoach(id: string, data: Partial<Pick<Coach, 'name' | 'phone'>>): Promise<void> {
+    const coachRef = doc(db, 'coaches', id);
+    await updateDoc(coachRef, data);
+}
+
+export async function deleteCoach(id: string): Promise<void> {
+    const coachRef = doc(db, 'coaches', id);
+    await deleteDoc(coachRef);
+}

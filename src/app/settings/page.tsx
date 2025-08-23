@@ -60,7 +60,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup, addAthlete, updateAthlete, deleteAthlete } from "@/lib/data";
+import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup, addAthlete, updateAthlete, deleteAthlete, addCoach, updateCoach, deleteCoach } from "@/lib/data";
 import { AppLogo } from '@/components/icons';
 import { UserPlus, PlusCircle, Trash2, Edit } from 'lucide-react';
 import type { Athlete, Group, Coach, AbsenceReason } from '@/types';
@@ -92,6 +92,13 @@ export default function SettingsPage() {
   const [newAthletePhone, setNewAthletePhone] = useState("");
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null); // For creating athlete in the correct group
   const [targetGroupId, setTargetGroupId] = useState(""); // For moving athlete
+
+  // State for coach management
+  const [isCoachDialogOpen, setIsCoachDialogOpen] = useState(false);
+  const [coachToEdit, setCoachToEdit] = useState<Coach | null>(null);
+  const [coachToDelete, setCoachToDelete] = useState<Coach | null>(null);
+  const [newCoachName, setNewCoachName] = useState("");
+  const [newCoachPhone, setNewCoachPhone] = useState("");
 
 
   const fetchAllData = useCallback(async () => {
@@ -153,17 +160,14 @@ export default function SettingsPage() {
     }
 
     try {
-        let updatedGroups = [...groups];
         if (groupToEdit) {
             await updateGroup(groupToEdit.id, newGroupName);
-            updatedGroups = groups.map(g => g.id === groupToEdit.id ? { ...g, name: newGroupName } : g);
             toast({ title: "קבוצה עודכנה", description: `הקבוצה ${newGroupName} עודכנה בהצלחה.` });
         } else {
-            const newGroup = await addGroup(newGroupName);
-            updatedGroups.push(newGroup);
+            await addGroup(newGroupName);
             toast({ title: "קבוצה נוצרה", description: `הקבוצה ${newGroupName} נוצרה בהצלחה.` });
         }
-        setGroups(updatedGroups.sort((a, b) => a.name.localeCompare(b.name)));
+        await fetchAllData();
     } catch(error) {
         toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת הקבוצה.", variant: "destructive" });
     } finally {
@@ -247,6 +251,56 @@ export default function SettingsPage() {
       } finally {
           setAthleteToDelete(null);
       }
+  }
+
+  // Coach Management Handlers
+  const handleOpenCoachDialog = (coach: Coach | null = null) => {
+    setCoachToEdit(coach);
+    setNewCoachName(coach?.name || "");
+    setNewCoachPhone(coach?.phone || "");
+    setIsCoachDialogOpen(true);
+  }
+
+  const handleCloseCoachDialog = () => {
+    setIsCoachDialogOpen(false);
+    setCoachToEdit(null);
+    setNewCoachName("");
+    setNewCoachPhone("");
+  }
+
+  const handleSaveCoach = async () => {
+    if (!newCoachName.trim() || !newCoachPhone.trim()) {
+        toast({ title: "שם או טלפון חסרים", description: "יש להזין שם וטלפון למאמן.", variant: "destructive" });
+        return;
+    }
+    
+    try {
+        if (coachToEdit) {
+            await updateCoach(coachToEdit.id, { name: newCoachName, phone: newCoachPhone });
+            toast({ title: "מאמן עודכן", description: `פרטי ${newCoachName} עודכנו.`});
+        } else {
+            await addCoach(newCoachName, newCoachPhone);
+            toast({ title: "מאמן נוסף", description: `${newCoachName} נוסף למערכת.`});
+        }
+        await fetchAllData();
+    } catch (error) {
+        toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת המאמן.", variant: "destructive"});
+    } finally {
+        handleCloseCoachDialog();
+    }
+  }
+
+  const handleDeleteCoach = async () => {
+    if (!coachToDelete) return;
+    try {
+        await deleteCoach(coachToDelete.id);
+        toast({ title: "מאמן נמחק", description: `${coachToDelete.name} נמחק מהמערכת.`});
+        await fetchAllData();
+    } catch (error) {
+        toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת המאמן.", variant: "destructive"});
+    } finally {
+        setCoachToDelete(null);
+    }
   }
 
 
@@ -386,7 +440,7 @@ export default function SettingsPage() {
                     <CardTitle>ניהול מאמנים</CardTitle>
                     <CardDescription>הוסף ונהל חשבונות מאמנים.</CardDescription>
                 </div>
-                 <Button><UserPlus className="me-2 h-4 w-4" />הוסף מאמן</Button>
+                 <Button onClick={() => handleOpenCoachDialog()}><UserPlus className="me-2 h-4 w-4" />הוסף מאמן</Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -404,8 +458,26 @@ export default function SettingsPage() {
                             <TableCell>{coach.name}</TableCell>
                             <TableCell>{coach.phone}</TableCell>
                             <TableCell className="text-left">
-                                <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenCoachDialog(coach)}><Edit className="h-4 w-4" /></Button>
+                                 <AlertDialog onOpenChange={(isOpen) => !isOpen && setCoachToDelete(null)}>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" onClick={() => setCoachToDelete(coach)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            פעולה זו תמחק את המאמן "{coachToDelete?.name}" לצמיתות.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>ביטול</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteCoach}>מחק</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </TableCell>
                         </TableRow>
                     ))}
@@ -486,9 +558,7 @@ export default function SettingsPage() {
                  <DialogClose asChild>
                     <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
                 </DialogClose>
-                <DialogClose asChild>
-                  <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
-                </DialogClose>
+                <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
@@ -533,6 +603,31 @@ export default function SettingsPage() {
                     <Button variant="outline" onClick={handleCloseAthleteDialog}>ביטול</Button>
                 </DialogClose>
                 <Button onClick={handleSaveAthlete}>{athleteToEdit ? 'שמור שינויים' : 'צור ספורטאי'}</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
+    {/* Coach Edit/Create Dialog */}
+     <Dialog open={isCoachDialogOpen} onOpenChange={handleCloseCoachDialog}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{coachToEdit ? 'עריכת פרטי מאמן' : 'הוספת מאמן חדש'}</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 grid gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="coachName">שם מלא</Label>
+                    <Input id="coachName" value={newCoachName} onChange={(e) => setNewCoachName(e.target.value)} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="coachPhone">טלפון</Label>
+                    <Input id="coachPhone" value={newCoachPhone} onChange={(e) => setNewCoachPhone(e.target.value)} />
+                </div>
+            </div>
+            <DialogFooter>
+                 <DialogClose asChild>
+                    <Button variant="outline" onClick={handleCloseCoachDialog}>ביטול</Button>
+                </DialogClose>
+                <Button onClick={handleSaveCoach}>{coachToEdit ? 'שמור שינויים' : 'הוסף מאמן'}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
