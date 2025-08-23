@@ -76,6 +76,10 @@ export default function SettingsPage() {
   const [athletesByGroup, setAthletesByGroup] = useState<Record<string, Athlete[]>>({});
 
   const [loading, setLoading] = useState(true);
+  
+  const [activeTab, setActiveTab] = useState("groups");
+  const [openAccordion, setOpenAccordion] = useState<string | undefined>();
+
 
   // State for group management dialogs
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
@@ -103,7 +107,8 @@ export default function SettingsPage() {
 
 
   const fetchAllData = useCallback(async () => {
-    setLoading(true);
+    // Keep loading true only on first fetch
+    // setLoading(true);
     try {
         const [groupsData, coachesData, reasonsData] = await Promise.all([
             getGroups(),
@@ -125,6 +130,12 @@ export default function SettingsPage() {
             }
         }
         setAthletesByGroup(athletesData);
+        
+        // Set default open accordion only on first load
+        if (groupsData.length > 0 && openAccordion === undefined) {
+            setOpenAccordion(groupsData[0].id);
+        }
+
     } catch (error) {
         console.error("Failed to fetch settings data:", error);
         toast({
@@ -135,7 +146,7 @@ export default function SettingsPage() {
     } finally {
         setLoading(false);
     }
-  }, [toast]);
+  }, [toast, openAccordion]);
   
   useEffect(() => {
     fetchAllData();
@@ -320,7 +331,7 @@ export default function SettingsPage() {
 
   return (
     <>
-    <Tabs defaultValue="groups" dir="rtl">
+    <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="groups">קבוצות וספורטאים</TabsTrigger>
         <TabsTrigger value="coaches">מאמנים</TabsTrigger>
@@ -352,12 +363,8 @@ export default function SettingsPage() {
                             <Input id="group-name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="mt-2" placeholder="לדוגמה: בוגרים"/>
                         </div>
                         <DialogFooter>
-                            <DialogClose asChild>
-                                <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
-                            </DialogClose>
-                            <DialogClose asChild>
-                                <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
-                            </DialogClose>
+                            <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
+                            <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
@@ -365,7 +372,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             {groups.length > 0 ? (
-                <Accordion type="single" collapsible className="w-full" defaultValue={groups[0]?.id}>
+                <Accordion type="single" collapsible className="w-full" value={openAccordion} onValueChange={setOpenAccordion}>
                 {groups.map(group => (
                     <AccordionItem value={group.id} key={group.id}>
                     <AccordionTrigger className="text-lg font-medium hover:no-underline">
@@ -652,3 +659,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    
