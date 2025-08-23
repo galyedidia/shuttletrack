@@ -107,8 +107,6 @@ export default function SettingsPage() {
 
 
   const fetchAllData = useCallback(async () => {
-    // Keep loading true only on first fetch
-    // setLoading(true);
     try {
         const [groupsData, coachesData, reasonsData] = await Promise.all([
             getGroups(),
@@ -283,31 +281,36 @@ export default function SettingsPage() {
   }
 
   const handleSaveCoach = async () => {
-    const israeliPhoneRegex = /^(05\d{8}|05\d-\d{7}|\+9725\d{8})$/;
+    const israeliPhoneRegex = /^(05\d-?\d{7}|\+9725\d-?\d{7})$/;
     
     if (!newCoachFirstName.trim() || !newCoachLastName.trim() || !newCoachPhone.trim()) {
         toast({ title: "שדות חסרים", description: "יש למלא שם פרטי, שם משפחה ומספר טלפון.", variant: "destructive" });
         return;
     }
 
-    if (!israeliPhoneRegex.test(newCoachPhone)) {
+    const formattedPhone = newCoachPhone.startsWith('+') ? newCoachPhone : `+972${newCoachPhone.substring(1)}`;
+
+    if (!israeliPhoneRegex.test(newCoachPhone.replace("-", ""))) {
         toast({ title: "מספר טלפון לא תקין", description: "יש להזין מספר טלפון ישראלי תקין.", variant: "destructive"});
         return;
     }
     
     try {
         if (coachToEdit) {
-            await updateCoach(coachToEdit.id, { firstName: newCoachFirstName, lastName: newCoachLastName, phone: newCoachPhone });
+            await updateCoach(coachToEdit.id, { firstName: newCoachFirstName, lastName: newCoachLastName, phone: formattedPhone });
             toast({ title: "מאמן עודכן", description: `פרטי ${newCoachFirstName} ${newCoachLastName} עודכנו.`});
         } else {
-            await addCoach(newCoachFirstName, newCoachLastName, newCoachPhone);
+            await addCoach(newCoachFirstName, newCoachLastName, formattedPhone);
             toast({ title: "מאמן נוסף", description: `${newCoachFirstName} ${newCoachLastName} נוסף למערכת.`});
         }
         await fetchAllData();
-    } catch (error) {
-        toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת המאמן.", variant: "destructive"});
-    } finally {
         handleCloseCoachDialog();
+    } catch (error: any) {
+        if (error.message.includes("already exists")) {
+            toast({ title: "מספר טלפון קיים", description: "קיים כבר מאמן עם מספר טלפון זה.", variant: "destructive"});
+        } else {
+            toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת המאמן.", variant: "destructive"});
+        }
     }
   }
 
@@ -363,7 +366,9 @@ export default function SettingsPage() {
                             <Input id="group-name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="mt-2" placeholder="לדוגמה: בוגרים"/>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
+                            <DialogClose asChild>
+                                <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
+                            </DialogClose>
                             <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
                         </DialogFooter>
                     </DialogContent>
@@ -645,7 +650,7 @@ export default function SettingsPage() {
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="coachPhone">טלפון</Label>
-                    <Input id="coachPhone" value={newCoachPhone} onChange={(e) => setNewCoachPhone(e.target.value)} />
+                    <Input id="coachPhone" value={newCoachPhone} onChange={(e) => setNewCoachPhone(e.target.value)} placeholder="05... או +972..."/>
                 </div>
             </div>
             <DialogFooter>
@@ -659,5 +664,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    

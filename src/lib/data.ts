@@ -124,6 +124,13 @@ export async function deleteAthlete(id: string): Promise<void> {
 
 // --- Coach Management ---
 export async function addCoach(firstName: string, lastName: string, phone: string): Promise<Coach> {
+    // Check for uniqueness
+    const q = query(collection(db, "coaches"), where("phone", "==", phone));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+        throw new Error("A coach with this phone number already exists.");
+    }
+    
     const docRef = await addDoc(collection(db, 'coaches'), { firstName, lastName, phone });
     return { id: docRef.id, firstName, lastName, phone };
 }
