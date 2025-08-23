@@ -55,7 +55,8 @@ export async function getGroupById(id: string): Promise<Group | null> {
 export async function getAbsenceReasons(): Promise<AbsenceReason[]> {
     const reasonsCol = collection(db, 'absenceReasons');
     const snapshot = await getDocs(reasonsCol);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AbsenceReason));
+    const reasons = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AbsenceReason));
+    return reasons.sort((a, b) => a.label.localeCompare(b.label));
 }
 
 
@@ -143,4 +144,20 @@ export async function updateCoach(id: string, data: Partial<Pick<Coach, 'firstNa
 export async function deleteCoach(id: string): Promise<void> {
     const coachRef = doc(db, 'coaches', id);
     await deleteDoc(coachRef);
+}
+
+// --- Absence Reason Management ---
+export async function addAbsenceReason(label: string): Promise<AbsenceReason> {
+    const docRef = await addDoc(collection(db, 'absenceReasons'), { label });
+    return { id: docRef.id, label };
+}
+
+export async function updateAbsenceReason(id: string, label: string): Promise<void> {
+    const reasonRef = doc(db, 'absenceReasons', id);
+    await updateDoc(reasonRef, { label });
+}
+
+export async function deleteAbsenceReason(id: string): Promise<void> {
+    const reasonRef = doc(db, 'absenceReasons', id);
+    await deleteDoc(reasonRef);
 }

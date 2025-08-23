@@ -60,7 +60,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup, addAthlete, updateAthlete, deleteAthlete, addCoach, updateCoach, deleteCoach } from "@/lib/data";
+import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup, addAthlete, updateAthlete, deleteAthlete, addCoach, updateCoach, deleteCoach, addAbsenceReason, updateAbsenceReason, deleteAbsenceReason } from "@/lib/data";
 import { AppLogo } from '@/components/icons';
 import { UserPlus, PlusCircle, Trash2, Edit } from 'lucide-react';
 import type { Athlete, Group, Coach, AbsenceReason } from '@/types';
@@ -104,6 +104,13 @@ export default function SettingsPage() {
   const [newCoachFirstName, setNewCoachFirstName] = useState("");
   const [newCoachLastName, setNewCoachLastName] = useState("");
   const [newCoachPhone, setNewCoachPhone] = useState("");
+
+  // State for absence reason management
+  const [isReasonDialogOpen, setIsReasonDialogOpen] = useState(false);
+  const [reasonToEdit, setReasonToEdit] = useState<AbsenceReason | null>(null);
+  const [reasonToDelete, setReasonToDelete] = useState<AbsenceReason | null>(null);
+  const [newReasonLabel, setNewReasonLabel] = useState("");
+  const [newReasonInput, setNewReasonInput] = useState("");
 
 
   const fetchAllData = useCallback(async () => {
@@ -190,6 +197,7 @@ export default function SettingsPage() {
     try {
         await deleteGroup(groupToDelete.id);
         toast({ title: "קבוצה נמחקה", description: `הקבוצה ${groupToDelete.name} נמחקה בהצלחה.` });
+        setOpenAccordion(undefined); // Close accordion
         await fetchAllData();
     } catch(error) {
         toast({ title: "שגיאה", description: "אירעה שגיאה בעת מחיקת הקבוצה.", variant: "destructive" });
@@ -324,6 +332,66 @@ export default function SettingsPage() {
         toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת המאמן.", variant: "destructive"});
     } finally {
         setCoachToDelete(null);
+    }
+  }
+
+  // Absence Reason Handlers
+  const handleOpenReasonDialog = (reason: AbsenceReason | null = null) => {
+    setReasonToEdit(reason);
+    setNewReasonLabel(reason?.label || "");
+    setIsReasonDialogOpen(true);
+  }
+
+  const handleCloseReasonDialog = () => {
+    setIsReasonDialogOpen(false);
+    setReasonToEdit(null);
+    setNewReasonLabel("");
+  }
+  
+  const handleAddReason = async () => {
+    if(!newReasonInput.trim()) {
+        toast({ title: "שם הסיבה ריק", description: "יש להזין שם לסיבת ההיעדרות.", variant: "destructive" });
+        return;
+    }
+    try {
+        await addAbsenceReason(newReasonInput);
+        toast({ title: "סיבה נוספה", description: `הסיבה "${newReasonInput}" נוספה בהצלחה.`});
+        setNewReasonInput("");
+        await fetchAllData();
+    } catch(error) {
+        toast({ title: "שגיאה", description: "אירעה שגיאה בעת הוספת הסיבה.", variant: "destructive" });
+    }
+  }
+
+  const handleSaveReason = async () => {
+    if (!newReasonLabel.trim()) {
+        toast({ title: "שם הסיבה ריק", description: "יש להזין שם לסיבת ההיעדרות.", variant: "destructive" });
+        return;
+    }
+
+    if (!reasonToEdit) return;
+
+    try {
+        await updateAbsenceReason(reasonToEdit.id, newReasonLabel);
+        toast({ title: "סיבה עודכנה", description: `הסיבה עודכנה ל-"${newReasonLabel}".` });
+        await fetchAllData();
+    } catch(error) {
+        toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת הסיבה.", variant: "destructive" });
+    } finally {
+        handleCloseReasonDialog();
+    }
+  }
+
+  const handleDeleteReason = async () => {
+    if (!reasonToDelete) return;
+    try {
+        await deleteAbsenceReason(reasonToDelete.id);
+        toast({ title: "סיבה נמחקה", description: `הסיבה "${reasonToDelete.label}" נמחקה בהצלחה.` });
+        await fetchAllData();
+    } catch(error) {
+        toast({ title: "שגיאה", description: "אירעה שגיאה בעת מחיקת הסיבה.", variant: "destructive" });
+    } finally {
+        setReasonToDelete(null);
     }
   }
 
@@ -543,8 +611,13 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
-                <Input placeholder="הוסף סיבה חדשה..."/>
-                <Button><PlusCircle className="me-2 h-4 w-4" />הוסף</Button>
+                <Input 
+                    placeholder="הוסף סיבה חדשה..."
+                    value={newReasonInput}
+                    onChange={(e) => setNewReasonInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddReason()}
+                />
+                <Button onClick={handleAddReason}><PlusCircle className="me-2 h-4 w-4" />הוסף</Button>
             </div>
             <Table>
                 <TableHeader>
@@ -558,8 +631,26 @@ export default function SettingsPage() {
                          <TableRow key={reason.id}>
                             <TableCell>{reason.label}</TableCell>
                             <TableCell className="text-left">
-                                <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenReasonDialog(reason)}><Edit className="h-4 w-4" /></Button>
+                                <AlertDialog onOpenChange={(isOpen) => !isOpen && setReasonToDelete(null)}>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" onClick={() => setReasonToDelete(reason)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            פעולה זו תמחק את הסיבה "{reasonToDelete?.label}" לצמיתות.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>ביטול</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteReason}>מחק</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </TableCell>
                         </TableRow>
                     ))}
@@ -658,6 +749,27 @@ export default function SettingsPage() {
                     <Button variant="outline" onClick={handleCloseCoachDialog}>ביטול</Button>
                  </DialogClose>
                  <Button onClick={handleSaveCoach}>{coachToEdit ? 'שמור שינויים' : 'הוסף מאמן'}</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
+    {/* Absence Reason Edit/Create Dialog */}
+    <Dialog open={isReasonDialogOpen} onOpenChange={handleCloseReasonDialog}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>עריכת סיבת היעדרות</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 grid gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="reasonLabel">שם הסיבה</Label>
+                    <Input id="reasonLabel" value={newReasonLabel} onChange={(e) => setNewReasonLabel(e.target.value)} />
+                </div>
+            </div>
+            <DialogFooter>
+                 <DialogClose asChild>
+                    <Button variant="outline" onClick={handleCloseReasonDialog}>ביטול</Button>
+                 </DialogClose>
+                 <Button onClick={handleSaveReason}>שמור שינויים</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
