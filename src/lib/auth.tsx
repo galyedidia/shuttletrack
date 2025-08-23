@@ -29,7 +29,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(user);
         // Fetch coach data from Firestore
         const coach = await getCoachByPhone(user.phoneNumber);
-        setCoachName(coach?.name || "מאמן");
+        if (coach) {
+          setCoachName(`${coach.firstName} ${coach.lastName}`);
+        } else {
+          setCoachName("מאמן");
+        }
       } else {
         setUser(null);
         setCoachName(null);

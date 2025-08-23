@@ -14,7 +14,8 @@ export interface Group {
 
 export interface Coach {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   phone: string;
 }
 
@@ -38,3 +39,4 @@ export interface AbsenceReason {
   id: string;
   label: string;
 }
+

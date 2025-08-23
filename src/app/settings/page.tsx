@@ -97,7 +97,8 @@ export default function SettingsPage() {
   const [isCoachDialogOpen, setIsCoachDialogOpen] = useState(false);
   const [coachToEdit, setCoachToEdit] = useState<Coach | null>(null);
   const [coachToDelete, setCoachToDelete] = useState<Coach | null>(null);
-  const [newCoachName, setNewCoachName] = useState("");
+  const [newCoachFirstName, setNewCoachFirstName] = useState("");
+  const [newCoachLastName, setNewCoachLastName] = useState("");
   const [newCoachPhone, setNewCoachPhone] = useState("");
 
 
@@ -256,7 +257,8 @@ export default function SettingsPage() {
   // Coach Management Handlers
   const handleOpenCoachDialog = (coach: Coach | null = null) => {
     setCoachToEdit(coach);
-    setNewCoachName(coach?.name || "");
+    setNewCoachFirstName(coach?.firstName || "");
+    setNewCoachLastName(coach?.lastName || "");
     setNewCoachPhone(coach?.phone || "");
     setIsCoachDialogOpen(true);
   }
@@ -264,23 +266,31 @@ export default function SettingsPage() {
   const handleCloseCoachDialog = () => {
     setIsCoachDialogOpen(false);
     setCoachToEdit(null);
-    setNewCoachName("");
+    setNewCoachFirstName("");
+    setNewCoachLastName("");
     setNewCoachPhone("");
   }
 
   const handleSaveCoach = async () => {
-    if (!newCoachName.trim() || !newCoachPhone.trim()) {
-        toast({ title: "שם או טלפון חסרים", description: "יש להזין שם וטלפון למאמן.", variant: "destructive" });
+    const israeliPhoneRegex = /^(05\d{8}|05\d-\d{7}|\+9725\d{8})$/;
+    
+    if (!newCoachFirstName.trim() || !newCoachLastName.trim() || !newCoachPhone.trim()) {
+        toast({ title: "שדות חסרים", description: "יש למלא שם פרטי, שם משפחה ומספר טלפון.", variant: "destructive" });
+        return;
+    }
+
+    if (!israeliPhoneRegex.test(newCoachPhone)) {
+        toast({ title: "מספר טלפון לא תקין", description: "יש להזין מספר טלפון ישראלי תקין.", variant: "destructive"});
         return;
     }
     
     try {
         if (coachToEdit) {
-            await updateCoach(coachToEdit.id, { name: newCoachName, phone: newCoachPhone });
-            toast({ title: "מאמן עודכן", description: `פרטי ${newCoachName} עודכנו.`});
+            await updateCoach(coachToEdit.id, { firstName: newCoachFirstName, lastName: newCoachLastName, phone: newCoachPhone });
+            toast({ title: "מאמן עודכן", description: `פרטי ${newCoachFirstName} ${newCoachLastName} עודכנו.`});
         } else {
-            await addCoach(newCoachName, newCoachPhone);
-            toast({ title: "מאמן נוסף", description: `${newCoachName} נוסף למערכת.`});
+            await addCoach(newCoachFirstName, newCoachLastName, newCoachPhone);
+            toast({ title: "מאמן נוסף", description: `${newCoachFirstName} ${newCoachLastName} נוסף למערכת.`});
         }
         await fetchAllData();
     } catch (error) {
@@ -294,7 +304,7 @@ export default function SettingsPage() {
     if (!coachToDelete) return;
     try {
         await deleteCoach(coachToDelete.id);
-        toast({ title: "מאמן נמחק", description: `${coachToDelete.name} נמחק מהמערכת.`});
+        toast({ title: "מאמן נמחק", description: `${coachToDelete.firstName} ${coachToDelete.lastName} נמחק מהמערכת.`});
         await fetchAllData();
     } catch (error) {
         toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת המאמן.", variant: "destructive"});
@@ -326,7 +336,31 @@ export default function SettingsPage() {
                     <CardTitle>ניהול קבוצות וספורטאים</CardTitle>
                     <CardDescription>הוסף, ערוך ומחק קבוצות וספורטאים.</CardDescription>
                 </div>
-                <Button onClick={() => handleOpenGroupDialog()}><PlusCircle className="me-2 h-4 w-4" />הוסף קבוצה חדשה</Button>
+                 <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button onClick={() => handleOpenGroupDialog()}><PlusCircle className="me-2 h-4 w-4" />הוסף קבוצה חדשה</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{groupToEdit ? 'עריכת שם קבוצה' : 'יצירת קבוצה חדשה'}</DialogTitle>
+                            <DialogDescription>
+                            {groupToEdit ? 'שנה את שם הקבוצה ולחץ על שמור.' : 'הזן את שם הקבוצה החדשה ולחץ על יצירה.'}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <Label htmlFor="group-name">שם הקבוצה</Label>
+                            <Input id="group-name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="mt-2" placeholder="לדוגמה: בוגרים"/>
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
+                            </DialogClose>
+                            <DialogClose asChild>
+                                <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
+                            </DialogClose>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
           </CardHeader>
           <CardContent>
@@ -447,7 +481,8 @@ export default function SettingsPage() {
              <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>שם</TableHead>
+                        <TableHead>שם פרטי</TableHead>
+                        <TableHead>שם משפחה</TableHead>
                         <TableHead>טלפון</TableHead>
                          <TableHead className="text-left">פעולות</TableHead>
                     </TableRow>
@@ -455,7 +490,8 @@ export default function SettingsPage() {
                 <TableBody>
                     {coaches.map(coach => (
                         <TableRow key={coach.id}>
-                            <TableCell>{coach.name}</TableCell>
+                            <TableCell>{coach.firstName}</TableCell>
+                            <TableCell>{coach.lastName}</TableCell>
                             <TableCell>{coach.phone}</TableCell>
                             <TableCell className="text-left">
                                 <Button variant="ghost" size="icon" onClick={() => handleOpenCoachDialog(coach)}><Edit className="h-4 w-4" /></Button>
@@ -469,7 +505,7 @@ export default function SettingsPage() {
                                         <AlertDialogHeader>
                                         <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            פעולה זו תמחק את המאמן "{coachToDelete?.name}" לצמיתות.
+                                            פעולה זו תמחק את המאמן "{coachToDelete?.firstName} {coachToDelete?.lastName}" לצמיתות.
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
@@ -541,28 +577,6 @@ export default function SettingsPage() {
       </TabsContent>
     </Tabs>
     
-    {/* Group Edit/Create Dialog */}
-    <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>{groupToEdit ? 'עריכת שם קבוצה' : 'יצירת קבוצה חדשה'}</DialogTitle>
-                <DialogDescription>
-                  {groupToEdit ? 'שנה את שם הקבוצה ולחץ על שמור.' : 'הזן את שם הקבוצה החדשה ולחץ על יצירה.'}
-                </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-                <Label htmlFor="group-name">שם הקבוצה</Label>
-                <Input id="group-name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="mt-2" placeholder="לדוגמה: בוגרים"/>
-            </div>
-            <DialogFooter>
-                 <DialogClose asChild>
-                    <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
-                </DialogClose>
-                <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
-
     {/* Athlete Edit/Create Dialog */}
     <Dialog open={isAthleteDialogOpen} onOpenChange={handleCloseAthleteDialog}>
         <DialogContent>
@@ -601,8 +615,8 @@ export default function SettingsPage() {
             <DialogFooter>
                  <DialogClose asChild>
                     <Button variant="outline" onClick={handleCloseAthleteDialog}>ביטול</Button>
-                </DialogClose>
-                <Button onClick={handleSaveAthlete}>{athleteToEdit ? 'שמור שינויים' : 'צור ספורטאי'}</Button>
+                 </DialogClose>
+                 <Button onClick={handleSaveAthlete}>{athleteToEdit ? 'שמור שינויים' : 'צור ספורטאי'}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
@@ -615,8 +629,12 @@ export default function SettingsPage() {
             </DialogHeader>
             <div className="py-4 grid gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="coachName">שם מלא</Label>
-                    <Input id="coachName" value={newCoachName} onChange={(e) => setNewCoachName(e.target.value)} />
+                    <Label htmlFor="coachFirstName">שם פרטי</Label>
+                    <Input id="coachFirstName" value={newCoachFirstName} onChange={(e) => setNewCoachFirstName(e.target.value)} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="coachLastName">שם משפחה</Label>
+                    <Input id="coachLastName" value={newCoachLastName} onChange={(e) => setNewCoachLastName(e.target.value)} />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="coachPhone">טלפון</Label>
@@ -626,8 +644,8 @@ export default function SettingsPage() {
             <DialogFooter>
                  <DialogClose asChild>
                     <Button variant="outline" onClick={handleCloseCoachDialog}>ביטול</Button>
-                </DialogClose>
-                <Button onClick={handleSaveCoach}>{coachToEdit ? 'שמור שינויים' : 'הוסף מאמן'}</Button>
+                 </DialogClose>
+                 <Button onClick={handleSaveCoach}>{coachToEdit ? 'שמור שינויים' : 'הוסף מאמן'}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>

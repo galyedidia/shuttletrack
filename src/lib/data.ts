@@ -123,12 +123,12 @@ export async function deleteAthlete(id: string): Promise<void> {
 }
 
 // --- Coach Management ---
-export async function addCoach(name: string, phone: string): Promise<Coach> {
-    const docRef = await addDoc(collection(db, 'coaches'), { name, phone });
-    return { id: docRef.id, name, phone };
+export async function addCoach(firstName: string, lastName: string, phone: string): Promise<Coach> {
+    const docRef = await addDoc(collection(db, 'coaches'), { firstName, lastName, phone });
+    return { id: docRef.id, firstName, lastName, phone };
 }
 
-export async function updateCoach(id: string, data: Partial<Pick<Coach, 'name' | 'phone'>>): Promise<void> {
+export async function updateCoach(id: string, data: Partial<Pick<Coach, 'firstName' | 'lastName' | 'phone'>>): Promise<void> {
     const coachRef = doc(db, 'coaches', id);
     await updateDoc(coachRef, data);
 }
