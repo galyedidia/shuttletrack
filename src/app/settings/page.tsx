@@ -61,7 +61,6 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup, addAthlete, updateAthlete, deleteAthlete, addCoach, updateCoach, deleteCoach, addAbsenceReason, updateAbsenceReason, deleteAbsenceReason } from "@/lib/data";
-import { AppLogo } from '@/components/icons';
 import { UserPlus, PlusCircle, Trash2, Edit } from 'lucide-react';
 import type { Athlete, Group, Coach, AbsenceReason } from '@/types';
 import { useToast } from "@/hooks/use-toast";
@@ -155,7 +154,7 @@ export default function SettingsPage() {
   
   useEffect(() => {
     fetchAllData();
-  }, [fetchAllData]);
+  }, []);
   
   // Group Management Handlers
   const handleOpenGroupDialog = (group: Group | null = null) => {
@@ -181,7 +180,8 @@ export default function SettingsPage() {
             await updateGroup(groupToEdit.id, newGroupName);
             toast({ title: "קבוצה עודכנה", description: `הקבוצה ${newGroupName} עודכנה בהצלחה.` });
         } else {
-            await addGroup(newGroupName);
+            const newGroup = await addGroup(newGroupName);
+            setGroups(prev => [...prev, newGroup].sort((a,b) => a.name.localeCompare(b.name)));
             toast({ title: "קבוצה נוצרה", description: `הקבוצה ${newGroupName} נוצרה בהצלחה.` });
         }
         await fetchAllData();
@@ -265,7 +265,7 @@ export default function SettingsPage() {
           toast({ title: "ספורטאי נמחק", description: `${athleteToDelete.firstName} ${athleteToDelete.lastName} נמחק בהצלחה.`});
           await fetchAllData();
       } catch (error) {
-          toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת הספורטאי.", variant: "destructive"});
+          toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת הספורטאי.", variant = "destructive"});
       } finally {
           setAthleteToDelete(null);
       }
@@ -292,14 +292,14 @@ export default function SettingsPage() {
     const israeliPhoneRegex = /^(05\d-?\d{7}|\+9725\d-?\d{7})$/;
     
     if (!newCoachFirstName.trim() || !newCoachLastName.trim() || !newCoachPhone.trim()) {
-        toast({ title: "שדות חסרים", description: "יש למלא שם פרטי, שם משפחה ומספר טלפון.", variant: "destructive" });
+        toast({ title: "שדות חסרים", description: "יש למלא שם פרטי, שם משפחה ומספר טלפון.", variant = "destructive" });
         return;
     }
 
     const formattedPhone = newCoachPhone.startsWith('+') ? newCoachPhone : `+972${newCoachPhone.substring(1)}`;
 
     if (!israeliPhoneRegex.test(newCoachPhone.replace("-", ""))) {
-        toast({ title: "מספר טלפון לא תקין", description: "יש להזין מספר טלפון ישראלי תקין.", variant: "destructive"});
+        toast({ title: "מספר טלפון לא תקין", description: "יש להזין מספר טלפון ישראלי תקין.", variant = "destructive"});
         return;
     }
     
@@ -315,9 +315,9 @@ export default function SettingsPage() {
         handleCloseCoachDialog();
     } catch (error: any) {
         if (error.message.includes("already exists")) {
-            toast({ title: "מספר טלפון קיים", description: "קיים כבר מאמן עם מספר טלפון זה.", variant: "destructive"});
+            toast({ title: "מספר טלפון קיים", description: "קיים כבר מאמן עם מספר טלפון זה.", variant = "destructive"});
         } else {
-            toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת המאמן.", variant: "destructive"});
+            toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת המאמן.", variant = "destructive"});
         }
     }
   }
@@ -329,7 +329,7 @@ export default function SettingsPage() {
         toast({ title: "מאמן נמחק", description: `${coachToDelete.firstName} ${coachToDelete.lastName} נמחק מהמערכת.`});
         await fetchAllData();
     } catch (error) {
-        toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת המאמן.", variant: "destructive"});
+        toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת המאמן.", variant = "destructive"});
     } finally {
         setCoachToDelete(null);
     }
@@ -350,7 +350,7 @@ export default function SettingsPage() {
   
   const handleAddReason = async () => {
     if(!newReasonInput.trim()) {
-        toast({ title: "שם הסיבה ריק", description: "יש להזין שם לסיבת ההיעדרות.", variant: "destructive" });
+        toast({ title: "שם הסיבה ריק", description: "יש להזין שם לסיבת ההיעדרות.", variant = "destructive" });
         return;
     }
     try {
@@ -359,13 +359,13 @@ export default function SettingsPage() {
         setNewReasonInput("");
         await fetchAllData();
     } catch(error) {
-        toast({ title: "שגיאה", description: "אירעה שגיאה בעת הוספת הסיבה.", variant: "destructive" });
+        toast({ title: "שגיאה", description: "אירעה שגיאה בעת הוספת הסיבה.", variant = "destructive" });
     }
   }
 
   const handleSaveReason = async () => {
     if (!newReasonLabel.trim()) {
-        toast({ title: "שם הסיבה ריק", description: "יש להזין שם לסיבת ההיעדרות.", variant: "destructive" });
+        toast({ title: "שם הסיבה ריק", description: "יש להזין שם לסיבת ההיעדרות.", variant = "destructive" });
         return;
     }
 
@@ -376,7 +376,7 @@ export default function SettingsPage() {
         toast({ title: "סיבה עודכנה", description: `הסיבה עודכנה ל-"${newReasonLabel}".` });
         await fetchAllData();
     } catch(error) {
-        toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת הסיבה.", variant: "destructive" });
+        toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת הסיבה.", variant = "destructive" });
     } finally {
         handleCloseReasonDialog();
     }
@@ -389,7 +389,7 @@ export default function SettingsPage() {
         toast({ title: "סיבה נמחקה", description: `הסיבה "${reasonToDelete.label}" נמחקה בהצלחה.` });
         await fetchAllData();
     } catch(error) {
-        toast({ title: "שגיאה", description: "אירעה שגיאה בעת מחיקת הסיבה.", variant: "destructive" });
+        toast({ title: "שגיאה", description: "אירעה שגיאה בעת מחיקת הסיבה.", variant = "destructive" });
     } finally {
         setReasonToDelete(null);
     }
@@ -403,11 +403,10 @@ export default function SettingsPage() {
   return (
     <>
     <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="groups">קבוצות וספורטאים</TabsTrigger>
         <TabsTrigger value="coaches">מאמנים</TabsTrigger>
         <TabsTrigger value="reasons">סיבות היעדרות</TabsTrigger>
-        <TabsTrigger value="logo">לוגו המועדון</TabsTrigger>
       </TabsList>
       
       <TabsContent value="groups">
@@ -437,7 +436,9 @@ export default function SettingsPage() {
                             <DialogClose asChild>
                                 <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
                             </DialogClose>
-                            <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
+                            <DialogClose asChild>
+                               <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
+                            </DialogClose>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
@@ -659,25 +660,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </TabsContent>
-
-      <TabsContent value="logo">
-        <Card>
-          <CardHeader>
-            <CardTitle>לוגו המועדון</CardTitle>
-            <CardDescription>העלה את לוגו המועדון שיוצג באפליקציה ובדוחות.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-6 text-center">
-            <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center border-4 border-dashed">
-                <AppLogo className="h-16 w-16 text-muted-foreground" />
-            </div>
-            <div className="w-full max-w-sm">
-                <Input type="file" />
-                <p className="text-xs text-muted-foreground mt-2">סוגי קבצים מומלצים: PNG, JPG, SVG</p>
-            </div>
-            <Button>שמור לוגו</Button>
-          </CardContent>
-        </Card>
-      </TabsContent>
     </Tabs>
     
     {/* Athlete Edit/Create Dialog */}
@@ -776,3 +758,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    
