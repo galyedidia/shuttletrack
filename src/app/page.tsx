@@ -67,7 +67,10 @@ export default function SessionsDashboardPage() {
 
 
   const sessionDates = useMemo(() => {
-    return sessions.map(s => new Date(s.date));
+    return sessions.map(s => {
+        const [year, month, day] = s.date.split('-').map(Number);
+        return new Date(Date.UTC(year, month - 1, day));
+    });
   }, [sessions]);
 
   const selectedDateString = useMemo(() => {
@@ -84,27 +87,35 @@ export default function SessionsDashboardPage() {
 
   const filteredSessions = useMemo(() => {
     return sessions.filter(s => {
-        const sessionDate = new Date(s.date);
-        sessionDate.setUTCHours(0,0,0,0);
+        // Parse the session date string 'YYYY-MM-DD' as UTC
+        const [year, month, day] = s.date.split('-').map(Number);
+        const sessionDate = new Date(Date.UTC(year, month - 1, day));
+
+        // Get the selected date and treat it as UTC
         const selDate = new Date(selectedDate);
-        selDate.setUTCHours(0,0,0,0);
-        return sessionDate.getTime() === selDate.getTime()
+        const selectedDateUTC = new Date(Date.UTC(selDate.getFullYear(), selDate.getMonth(), selDate.getDate()));
+
+        return sessionDate.getTime() === selectedDateUTC.getTime();
     });
   }, [sessions, selectedDate]);
 
   const handleCreateSession = async () => {
     if (!newSessionGroupId) return;
     try {
-      const newSession = await addTrainingSession({
+      const newSessionData = {
         date: selectedDateString,
         groupId: newSessionGroupId,
         attendance: {},
-      });
+      };
+      const newSession = await addTrainingSession(newSessionData);
+      
+      // Immediately update state to reflect the change
       setSessions(prev => [...prev, newSession]);
       setNewSessionGroupId('');
+      
        toast({
         title: "אימון נוצר בהצלחה",
-        description: `האימון לקבוצה נוצר לתאריך ${selectedDateString}.`,
+        description: `האימון לקבוצה נוצר לתאריך ${new Date(newSession.date).toLocaleDateString('he-IL')}.`,
       });
     } catch (error) {
        toast({
@@ -124,8 +135,12 @@ export default function SessionsDashboardPage() {
     const fetchCounts = async () => {
         const counts: Record<string, number> = {};
         for (const group of groups) {
-            const athletes = await getAthletesInGroup(group.id);
-            counts[group.id] = athletes.length;
+            try {
+              const athletes = await getAthletesInGroup(group.id);
+              counts[group.id] = athletes.length;
+            } catch (error) {
+               counts[group.id] = 0;
+            }
         }
         setAthleteCounts(counts);
     };
@@ -162,24 +177,6 @@ export default function SessionsDashboardPage() {
                       mode="single"
                       selected={selectedDate}
                       onSelect={(date) => date && setSelectedDate(date)}
-                      disabled={(date) => {
-                          const today = new Date();
-                          today.setHours(0,0,0,0);
-                          // Allow future dates
-                          if (date > today) return false;
-                          
-                          // Check if there is a session on this past date
-                          const sessionExists = sessionDates.some(sessionDate => {
-                              const sDate = new Date(sessionDate);
-                              sDate.setUTCHours(0,0,0,0);
-                              const targetDate = new Date(date);
-                              targetDate.setUTCHours(0,0,0,0);
-                              return sDate.getTime() === targetDate.getTime();
-                          });
-
-                          // Disable past dates without sessions
-                          return date < today && !sessionExists;
-                      }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -200,7 +197,7 @@ export default function SessionsDashboardPage() {
                 <CardHeader>
                   <CardTitle>{group?.name}</CardTitle>
                   <CardDescription>
-                    אימון בתאריך {new Date(session.date).toLocaleDateString('he-IL')}
+                    אימון בתאריך {new Date(session.date).toLocaleDateString('he-IL', { timeZone: 'UTC' })}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -212,7 +209,7 @@ export default function SessionsDashboardPage() {
                 <CardFooter>
                   <Button className="w-full" onClick={() => router.push(`/session/${session.id}`)}>
                     <Edit className="me-2 h-4 w-4" />
-                    {new Date(session.date).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0) ? 'ערוך אימון' : 'הצג אימון'}
+                    {new Date(session.date).setUTCHours(0,0,0,0) >= new Date(new Date().setUTCHours(0,0,0,0)).getTime() ? 'ערוך אימון' : 'הצג אימון'}
                   </Button>
                 </CardFooter>
               </Card>
@@ -249,7 +246,7 @@ export default function SessionsDashboardPage() {
                         </SelectTrigger>
                         <SelectContent>
                             {groups.map(group => (
-                                <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
+                                <SelectItem key={group.id} value={group.id} disabled={filteredSessions.some(s => s.groupId === group.id)}>{group.name}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
