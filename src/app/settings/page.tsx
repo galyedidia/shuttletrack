@@ -111,9 +111,9 @@ export default function SettingsPage() {
   const [newReasonLabel, setNewReasonLabel] = useState("");
   const [newReasonInput, setNewReasonInput] = useState("");
 
-
-  const fetchAllData = useCallback(async () => {
+  const fetchAllData = async (shouldSetAccordion = false) => {
     try {
+        setLoading(true);
         const [groupsData, coachesData, reasonsData] = await Promise.all([
             getGroups(),
             getCoaches(),
@@ -135,8 +135,7 @@ export default function SettingsPage() {
         }
         setAthletesByGroup(athletesData);
         
-        // Set default open accordion only on first load
-        if (groupsData.length > 0 && openAccordion === undefined) {
+        if (shouldSetAccordion && groupsData.length > 0) {
             setOpenAccordion(groupsData[0].id);
         }
 
@@ -150,10 +149,10 @@ export default function SettingsPage() {
     } finally {
         setLoading(false);
     }
-  }, [toast, openAccordion]);
+  };
   
   useEffect(() => {
-    fetchAllData();
+    fetchAllData(true);
   }, []);
   
   // Group Management Handlers
@@ -180,8 +179,7 @@ export default function SettingsPage() {
             await updateGroup(groupToEdit.id, newGroupName);
             toast({ title: "קבוצה עודכנה", description: `הקבוצה ${newGroupName} עודכנה בהצלחה.` });
         } else {
-            const newGroup = await addGroup(newGroupName);
-            setGroups(prev => [...prev, newGroup].sort((a,b) => a.name.localeCompare(b.name)));
+            await addGroup(newGroupName);
             toast({ title: "קבוצה נוצרה", description: `הקבוצה ${newGroupName} נוצרה בהצלחה.` });
         }
         await fetchAllData();
@@ -265,7 +263,7 @@ export default function SettingsPage() {
           toast({ title: "ספורטאי נמחק", description: `${athleteToDelete.firstName} ${athleteToDelete.lastName} נמחק בהצלחה.`});
           await fetchAllData();
       } catch (error) {
-          toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת הספורטאי.", variant = "destructive"});
+          toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת הספורטאי.", variant: "destructive"});
       } finally {
           setAthleteToDelete(null);
       }
@@ -292,14 +290,14 @@ export default function SettingsPage() {
     const israeliPhoneRegex = /^(05\d-?\d{7}|\+9725\d-?\d{7})$/;
     
     if (!newCoachFirstName.trim() || !newCoachLastName.trim() || !newCoachPhone.trim()) {
-        toast({ title: "שדות חסרים", description: "יש למלא שם פרטי, שם משפחה ומספר טלפון.", variant = "destructive" });
+        toast({ title: "שדות חסרים", description: "יש למלא שם פרטי, שם משפחה ומספר טלפון.", variant: "destructive" });
         return;
     }
 
     const formattedPhone = newCoachPhone.startsWith('+') ? newCoachPhone : `+972${newCoachPhone.substring(1)}`;
 
     if (!israeliPhoneRegex.test(newCoachPhone.replace("-", ""))) {
-        toast({ title: "מספר טלפון לא תקין", description: "יש להזין מספר טלפון ישראלי תקין.", variant = "destructive"});
+        toast({ title: "מספר טלפון לא תקין", description: "יש להזין מספר טלפון ישראלי תקין.", variant: "destructive"});
         return;
     }
     
@@ -315,9 +313,9 @@ export default function SettingsPage() {
         handleCloseCoachDialog();
     } catch (error: any) {
         if (error.message.includes("already exists")) {
-            toast({ title: "מספר טלפון קיים", description: "קיים כבר מאמן עם מספר טלפון זה.", variant = "destructive"});
+            toast({ title: "מספר טלפון קיים", description: "קיים כבר מאמן עם מספר טלפון זה.", variant: "destructive"});
         } else {
-            toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת המאמן.", variant = "destructive"});
+            toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת המאמן.", variant: "destructive"});
         }
     }
   }
@@ -329,7 +327,7 @@ export default function SettingsPage() {
         toast({ title: "מאמן נמחק", description: `${coachToDelete.firstName} ${coachToDelete.lastName} נמחק מהמערכת.`});
         await fetchAllData();
     } catch (error) {
-        toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת המאמן.", variant = "destructive"});
+        toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת המאמן.", variant: "destructive"});
     } finally {
         setCoachToDelete(null);
     }
@@ -350,7 +348,7 @@ export default function SettingsPage() {
   
   const handleAddReason = async () => {
     if(!newReasonInput.trim()) {
-        toast({ title: "שם הסיבה ריק", description: "יש להזין שם לסיבת ההיעדרות.", variant = "destructive" });
+        toast({ title: "שם הסיבה ריק", description: "יש להזין שם לסיבת ההיעדרות.", variant: "destructive" });
         return;
     }
     try {
@@ -359,13 +357,13 @@ export default function SettingsPage() {
         setNewReasonInput("");
         await fetchAllData();
     } catch(error) {
-        toast({ title: "שגיאה", description: "אירעה שגיאה בעת הוספת הסיבה.", variant = "destructive" });
+        toast({ title: "שגיאה", description: "אירעה שגיאה בעת הוספת הסיבה.", variant: "destructive" });
     }
   }
 
   const handleSaveReason = async () => {
     if (!newReasonLabel.trim()) {
-        toast({ title: "שם הסיבה ריק", description: "יש להזין שם לסיבת ההיעדרות.", variant = "destructive" });
+        toast({ title: "שם הסיבה ריק", description: "יש להזין שם לסיבת ההיעדרות.", variant: "destructive" });
         return;
     }
 
@@ -376,7 +374,7 @@ export default function SettingsPage() {
         toast({ title: "סיבה עודכנה", description: `הסיבה עודכנה ל-"${newReasonLabel}".` });
         await fetchAllData();
     } catch(error) {
-        toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת הסיבה.", variant = "destructive" });
+        toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת הסיבה.", variant: "destructive" });
     } finally {
         handleCloseReasonDialog();
     }
@@ -389,7 +387,7 @@ export default function SettingsPage() {
         toast({ title: "סיבה נמחקה", description: `הסיבה "${reasonToDelete.label}" נמחקה בהצלחה.` });
         await fetchAllData();
     } catch(error) {
-        toast({ title: "שגיאה", description: "אירעה שגיאה בעת מחיקת הסיבה.", variant = "destructive" });
+        toast({ title: "שגיאה", description: "אירעה שגיאה בעת מחיקת הסיבה.", variant: "destructive" });
     } finally {
         setReasonToDelete(null);
     }
@@ -433,12 +431,8 @@ export default function SettingsPage() {
                             <Input id="group-name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="mt-2" placeholder="לדוגמה: בוגרים"/>
                         </div>
                         <DialogFooter>
-                            <DialogClose asChild>
-                                <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
-                            </DialogClose>
-                            <DialogClose asChild>
-                               <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
-                            </DialogClose>
+                            <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
+                            <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
@@ -698,9 +692,7 @@ export default function SettingsPage() {
                 )}
             </div>
             <DialogFooter>
-                 <DialogClose asChild>
-                    <Button variant="outline" onClick={handleCloseAthleteDialog}>ביטול</Button>
-                 </DialogClose>
+                 <Button variant="outline" onClick={handleCloseAthleteDialog}>ביטול</Button>
                  <Button onClick={handleSaveAthlete}>{athleteToEdit ? 'שמור שינויים' : 'צור ספורטאי'}</Button>
             </DialogFooter>
         </DialogContent>
@@ -727,9 +719,7 @@ export default function SettingsPage() {
                 </div>
             </div>
             <DialogFooter>
-                 <DialogClose asChild>
-                    <Button variant="outline" onClick={handleCloseCoachDialog}>ביטול</Button>
-                 </DialogClose>
+                 <Button variant="outline" onClick={handleCloseCoachDialog}>ביטול</Button>
                  <Button onClick={handleSaveCoach}>{coachToEdit ? 'שמור שינויים' : 'הוסף מאמן'}</Button>
             </DialogFooter>
         </DialogContent>
@@ -748,9 +738,7 @@ export default function SettingsPage() {
                 </div>
             </div>
             <DialogFooter>
-                 <DialogClose asChild>
-                    <Button variant="outline" onClick={handleCloseReasonDialog}>ביטול</Button>
-                 </DialogClose>
+                 <Button variant="outline" onClick={handleCloseReasonDialog}>ביטול</Button>
                  <Button onClick={handleSaveReason}>שמור שינויים</Button>
             </DialogFooter>
         </DialogContent>
@@ -758,5 +746,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    
