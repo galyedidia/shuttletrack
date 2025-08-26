@@ -50,6 +50,7 @@ export default function SessionsDashboardPage() {
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [newSessionGroupId, setNewSessionGroupId] = useState<string>('');
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -162,7 +163,7 @@ export default function SessionsDashboardPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <CardTitle>ניהול אימונים</CardTitle>
             <div className="flex items-center gap-2">
-                <Popover>
+                <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant={"outline"}
@@ -176,7 +177,12 @@ export default function SessionsDashboardPage() {
                     <Calendar
                       mode="single"
                       selected={selectedDate}
-                      onSelect={(date) => date && setSelectedDate(date)}
+                      onSelect={(date) => {
+                          if (date) {
+                              setSelectedDate(date);
+                              setIsDatePickerOpen(false);
+                          }
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
