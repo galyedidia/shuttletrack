@@ -144,7 +144,7 @@ export default function ReportsPage() {
                 }
             });
 
-            const attendancePercentage = Math.round((attendedSessions / totalSessions) * 100) || 0;
+            const attendancePercentage = totalSessions > 0 ? Math.round((attendedSessions / totalSessions) * 100) : 0;
             const averageRating = ratedSessions > 0 ? parseFloat((totalRating / ratedSessions).toFixed(1)) : 0;
             const absences = totalSessions - attendedSessions;
 
@@ -291,8 +291,8 @@ export default function ReportsPage() {
                 <TableRow key={row.name} onClick={() => handleAthleteClick(row)} className="cursor-pointer">
                     <TableCell className="font-medium">{row.name}</TableCell>
                     <TableCell className="text-center">
-                        <Badge variant={row.attendancePercentage > 85 ? "default" : "secondary"} className={row.attendancePercentage > 95 ? 'bg-green-500' : row.attendancePercentage < 75 ? 'bg-red-500': ''}>
-                             {`${row.attendancePercentage}% (${row.attendedSessions}/${row.totalSessions})`}
+                         <Badge variant={row.attendancePercentage > 85 ? "default" : "secondary"} className={row.attendancePercentage > 95 ? 'bg-green-500' : row.attendancePercentage < 75 ? 'bg-red-500': ''}>
+                            {`${row.attendancePercentage}% (${row.attendedSessions}/${row.totalSessions})`}
                         </Badge>
                     </TableCell>
                     <TableCell className="text-center">{row.averageRating > 0 ? row.averageRating : 'אין'}</TableCell>
@@ -319,26 +319,26 @@ export default function ReportsPage() {
             </DialogHeader>
             <div className="py-4">
                  <ScrollArea className="h-96">
-                    <Table>
+                    <Table dir="rtl">
                         <TableHeader>
                             <TableRow>
-                                <TableHead>תאריך</TableHead>
-                                <TableHead>סטטוס</TableHead>
-                                <TableHead>דירוג/סיבה</TableHead>
-                                <TableHead>הערה</TableHead>
+                                <TableHead className="text-right">תאריך</TableHead>
+                                <TableHead className="text-right">סטטוס</TableHead>
+                                <TableHead className="text-right">דירוג/סיבה</TableHead>
+                                <TableHead className="text-right">הערה</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {athleteSessionDetails.map((detail, index) => (
                                 <TableRow key={index}>
-                                    <TableCell>{detail.date}</TableCell>
-                                    <TableCell>
+                                    <TableCell className="text-right">{detail.date}</TableCell>
+                                    <TableCell className="text-right">
                                         <Badge variant={detail.status === 'נוכח' ? 'default' : 'destructive'}>
                                             {detail.status}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell>{detail.rating || detail.absenceReason || '-'}</TableCell>
-                                    <TableCell>{detail.comment || '-'}</TableCell>
+                                    <TableCell className="text-right">{detail.rating || detail.absenceReason || '-'}</TableCell>
+                                    <TableCell className="text-right">{detail.comment || '-'}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
