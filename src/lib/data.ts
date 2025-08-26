@@ -183,7 +183,48 @@ export async function deleteAbsenceReason(id: string): Promise<void> {
 }
 
 
-// --- Database Seeding Utility ---
+// --- Database Seeding Utilities ---
+
+export async function seedAthletes() {
+    const groups = await getGroups();
+    if (groups.length === 0) {
+        throw new Error("Please create at least one group before seeding athletes.");
+    }
+
+    const athletesToAdd = [
+        { firstName: "יובל", lastName: "כהן", phone: "050-1234501" },
+        { firstName: "נועה", lastName: "לוי", phone: "050-1234502" },
+        { firstName: "איתי", lastName: "מזרחי", phone: "050-1234503" },
+        { firstName: "מאיה", lastName: "פרץ", phone: "050-1234504" },
+        { firstName: "דניאל", lastName: "ביטון", phone: "050-1234505" },
+        { firstName: "תמר", lastName: "דהן", phone: "050-1234506" },
+        { firstName: "עומר", lastName: "אברהם", phone: "050-1234507" },
+        { firstName: "יעל", lastName: "פרידמן", phone: "050-1234508" },
+        { firstName: "אריאל", lastName: "כץ", phone: "050-1234509" },
+        { firstName: "שירה", lastName: "חדד", phone: "050-1234510" },
+        { firstName: "דוד", lastName: "לוי", phone: "050-1234511" },
+        { firstName: "רוני", lastName: "כהן", phone: "050-1234512" },
+        { firstName: "אורי", lastName: "מזרחי", phone: "050-1234513" },
+        { firstName: "אביגיל", lastName: "פרץ", phone: "050-1234514" },
+        { firstName: "איתן", lastName: "ביטון", phone: "050-1234515" },
+        { firstName: "ליה", lastName: "דהן", phone: "050-1234516" },
+        { firstName: "יונתן", lastName: "אברהם", phone: "050-1234517" },
+        { firstName: "מיכאל", lastName: "פרידמן", phone: "050-1234518" },
+        { firstName: "אלה", lastName: "כץ", phone: "050-1234519" },
+        { firstName: "גיא", lastName: "חדד", phone: "050-1234520" },
+    ];
+
+    const batch = writeBatch(db);
+    athletesToAdd.forEach((athlete, index) => {
+        const groupId = groups[index % groups.length].id;
+        const athleteRef = doc(collection(db, 'athletes'));
+        batch.set(athleteRef, { ...athlete, groupId });
+    });
+
+    await batch.commit();
+}
+
+
 export async function seedDatabaseWithMockData() {
     const batch = writeBatch(db);
 

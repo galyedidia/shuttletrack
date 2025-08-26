@@ -60,8 +60,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup, addAthlete, updateAthlete, deleteAthlete, addCoach, updateCoach, deleteCoach, addAbsenceReason, updateAbsenceReason, deleteAbsenceReason, seedDatabaseWithMockData } from "@/lib/data";
-import { UserPlus, PlusCircle, Trash2, Edit, TestTube2, Loader2 } from 'lucide-react';
+import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup, addAthlete, updateAthlete, deleteAthlete, addCoach, updateCoach, deleteCoach, addAbsenceReason, updateAbsenceReason, deleteAbsenceReason, seedDatabaseWithMockData, seedAthletes } from "@/lib/data";
+import { UserPlus, PlusCircle, Trash2, Edit, TestTube2, Loader2, Users } from 'lucide-react';
 import type { Athlete, Group, Coach, AbsenceReason } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 
@@ -69,6 +69,7 @@ import { useToast } from "@/hooks/use-toast";
 function DeveloperTools() {
     const { toast } = useToast();
     const [isSeeding, setIsSeeding] = useState(false);
+    const [isSeedingAthletes, setIsSeedingAthletes] = useState(false);
 
     const handleSeedData = async () => {
         setIsSeeding(true);
@@ -89,6 +90,26 @@ function DeveloperTools() {
             setIsSeeding(false);
         }
     };
+    
+     const handleSeedAthletes = async () => {
+        setIsSeedingAthletes(true);
+        try {
+            await seedAthletes();
+            toast({
+                title: "הצלחה!",
+                description: "ספורטאים לדוגמה נוצרו בהצלחה. ניתן לראות אותם תחת הקבוצות השונות.",
+            });
+        } catch (error: any) {
+            console.error("Failed to seed athletes:", error);
+            toast({
+                title: "שגיאה ביצירת ספורטאים",
+                description: error.message || "אירעה שגיאה לא צפויה.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSeedingAthletes(false);
+        }
+    };
 
     return (
          <Card>
@@ -100,7 +121,36 @@ function DeveloperTools() {
                 <div className="space-y-4">
                    <div className="flex items-center justify-between rounded-lg border p-4">
                      <div className="space-y-0.5">
-                        <h3 className="font-medium">יצירת דאטה לדוגמה</h3>
+                        <h3 className="font-medium">הוספת ספורטאים לדוגמה</h3>
+                        <p className="text-sm text-muted-foreground">
+                            מוסיף 20 ספורטאים לדוגמה עם שמות בעברית ומחלק אותם בין הקבוצות הקיימות.
+                        </p>
+                     </div>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="secondary" disabled={isSeedingAthletes}>
+                                {isSeedingAthletes ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Users className="me-2 h-4 w-4" />}
+                                {isSeedingAthletes ? 'מוסיף ספורטאים...' : 'הוסף ספורטאים לדוגמה'}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                פעולה זו תוסיף ספורטאים חדשים למערכת. 
+                                תוכל למחוק אותם ידנית מאוחר יותר.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>ביטול</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleSeedAthletes}>כן, הוסף ספורטאים</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                   </div>
+                   <div className="flex items-center justify-between rounded-lg border p-4">
+                     <div className="space-y-0.5">
+                        <h3 className="font-medium">יצירת דאטה אימונים לדוגמה</h3>
                         <p className="text-sm text-muted-foreground">
                             יוצר מספר חודשים של אימונים ונוכחות רנדומלית עבור כל הקבוצות והספורטאים הקיימים.
                         </p>
