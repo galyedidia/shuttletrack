@@ -26,10 +26,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileDown, Loader2 } from 'lucide-react';
-import { getGroups, getAthletesInGroup, getTrainingSessionsForGroupInMonth } from '@/lib/data';
+import { getGroups, getAthletesInGroup, getTrainingSessionsForGroupInMonth, getAbsenceReasons } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
-import type { Group, Athlete, TrainingSession } from '@/types';
+import type { Group, Athlete, TrainingSession, AbsenceReason } from '@/types';
 
 const months = [
   { value: 1, label: 'ינואר' }, { value: 2, label: 'פברואר' }, { value: 3, label: 'מרץ' },
@@ -41,10 +51,21 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 interface ReportData {
+    athleteId: string;
     name: string;
     attendancePercentage: number;
+    attendedSessions: number;
+    totalSessions: number;
     averageRating: number;
     absences: number;
+}
+
+interface AthleteSessionDetail {
+    date: string;
+    status: 'נוכח' | 'נעדר';
+    rating?: number;
+    absenceReason?: string;
+    comment?: string;
 }
 
 export default function ReportsPage() {
@@ -55,18 +76,35 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [loadingReport, setLoadingReport] = useState(false);
   const [reportData, setReportData] = useState<ReportData[]>([]);
+  const [absenceReasons, setAbsenceReasons] = useState<Record<string, string>>({});
+
+  // For Athlete Detail Dialog
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedAthleteReport, setSelectedAthleteReport] = useState<ReportData | null>(null);
+  const [athleteSessionDetails, setAthleteSessionDetails] = useState<AthleteSessionDetail[]>([]);
+  const [sessionsForMonth, setSessionsForMonth] = useState<TrainingSession[]>([]);
 
    useEffect(() => {
-    async function fetchGroups() {
+    async function fetchInitialData() {
         setLoading(true);
-        const groupsData = await getGroups();
+        const [groupsData, reasonsData] = await Promise.all([
+            getGroups(),
+            getAbsenceReasons(),
+        ]);
         setGroups(groupsData);
         if (groupsData.length > 0) {
             setSelectedGroup(groupsData[0].id);
         }
+
+        const reasonsMap = reasonsData.reduce((acc, reason) => {
+            acc[reason.id] = reason.label;
+            return acc;
+        }, {} as Record<string, string>);
+        setAbsenceReasons(reasonsMap);
+
         setLoading(false);
     }
-    fetchGroups();
+    fetchInitialData();
   }, []);
 
   const generateReport = useCallback(async () => {
@@ -81,6 +119,7 @@ export default function ReportsPage() {
             getTrainingSessionsForGroupInMonth(selectedGroup, selectedYear, selectedMonth)
         ]);
 
+        setSessionsForMonth(sessions);
         const totalSessions = sessions.length;
 
         if (totalSessions === 0 || athletes.length === 0) {
@@ -110,8 +149,11 @@ export default function ReportsPage() {
             const absences = totalSessions - attendedSessions;
 
             return {
+                athleteId: athlete.id,
                 name: `${athlete.firstName} ${athlete.lastName}`,
                 attendancePercentage,
+                attendedSessions,
+                totalSessions,
                 averageRating,
                 absences
             };
@@ -134,9 +176,47 @@ export default function ReportsPage() {
    }, [selectedGroup, selectedYear, selectedMonth, generateReport]);
 
 
+  const handleAthleteClick = (athleteReport: ReportData) => {
+    const details: AthleteSessionDetail[] = sessionsForMonth.map(session => {
+        const record = session.attendance[athleteReport.athleteId];
+        const detail: AthleteSessionDetail = {
+            date: new Date(session.date + 'T00:00:00').toLocaleDateString('he-IL'),
+            status: record?.present ? 'נוכח' : 'נעדר',
+            rating: record?.rating,
+            comment: record?.comment,
+            absenceReason: record?.absenceReason ? absenceReasons[record.absenceReason] : undefined,
+        };
+        return detail;
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setAthleteSessionDetails(details);
+    setSelectedAthleteReport(athleteReport);
+    setIsDetailOpen(true);
+  };
+  
   const handleExport = () => {
-    // Logic for exporting to Excel would go here
-    alert(`מייצא דוח עבור ${months.find(m => m.value === selectedMonth)?.label} ${selectedYear}...`);
+    if (!selectedAthleteReport || !athleteSessionDetails.length) return;
+
+    const headers = ["תאריך", "סטטוס", "דירוג", "סיבת היעדרות", "הערה"];
+    const csvContent = [
+        headers.join(','),
+        ...athleteSessionDetails.map(d => [
+            `"${d.date}"`,
+            `"${d.status}"`,
+            d.rating || '',
+            `"${d.absenceReason || ''}"`,
+            `"${(d.comment || '').replace(/"/g, '""')}"`
+        ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    const safeName = selectedAthleteReport.name.replace(/ /g, '_');
+    link.setAttribute('download', `report_${safeName}_${selectedMonth}-${selectedYear}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
   
   const selectedGroupName = useMemo(() => {
@@ -148,6 +228,7 @@ export default function ReportsPage() {
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -207,11 +288,11 @@ export default function ReportsPage() {
             </TableHeader>
             <TableBody>
                 {reportData.map((row) => (
-                <TableRow key={row.name}>
+                <TableRow key={row.name} onClick={() => handleAthleteClick(row)} className="cursor-pointer">
                     <TableCell className="font-medium">{row.name}</TableCell>
                     <TableCell className="text-center">
                         <Badge variant={row.attendancePercentage > 85 ? "default" : "secondary"} className={row.attendancePercentage > 95 ? 'bg-green-500' : row.attendancePercentage < 75 ? 'bg-red-500': ''}>
-                            {row.attendancePercentage}%
+                             {`${row.attendancePercentage}% (${row.attendedSessions}/${row.totalSessions})`}
                         </Badge>
                     </TableCell>
                     <TableCell className="text-center">{row.averageRating > 0 ? row.averageRating : 'אין'}</TableCell>
@@ -226,12 +307,53 @@ export default function ReportsPage() {
             </div>
         )}
       </CardContent>
-      <CardFooter>
-        <Button onClick={handleExport} className="ms-auto" disabled={reportData.length === 0}>
-          <FileDown className="me-2 h-4 w-4" />
-          ייצא לאקסל
-        </Button>
-      </CardFooter>
     </Card>
+
+    <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-2xl">
+            <DialogHeader>
+                <DialogTitle>דוח מפורט: {selectedAthleteReport?.name}</DialogTitle>
+                <DialogDescription>
+                    פירוט אימונים עבור {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                 <ScrollArea className="h-96">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>תאריך</TableHead>
+                                <TableHead>סטטוס</TableHead>
+                                <TableHead>דירוג/סיבה</TableHead>
+                                <TableHead>הערה</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {athleteSessionDetails.map((detail, index) => (
+                                <TableRow key={index}>
+                                    <TableCell>{detail.date}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={detail.status === 'נוכח' ? 'default' : 'destructive'}>
+                                            {detail.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>{detail.rating || detail.absenceReason || '-'}</TableCell>
+                                    <TableCell>{detail.comment || '-'}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                 </ScrollArea>
+            </div>
+            <DialogFooter>
+                 <Button variant="outline" onClick={() => setIsDetailOpen(false)}>סגור</Button>
+                 <Button onClick={handleExport}>
+                    <FileDown className="me-2 h-4 w-4" />
+                    ייצא לאקסל
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
