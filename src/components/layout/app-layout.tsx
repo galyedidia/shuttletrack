@@ -56,16 +56,13 @@ function NavLink({ href, label, icon: Icon }: { href: string; label: string; ico
 
   return (
     <SidebarMenuItem>
-      <Link href={href} legacyBehavior passHref>
+      <Link href={href}>
         <SidebarMenuButton
-          asChild
           isActive={isActive}
           onClick={() => setOpen(false)}
         >
-          <a>
             <Icon />
             <span>{label}</span>
-          </a>
         </SidebarMenuButton>
       </Link>
     </SidebarMenuItem>
