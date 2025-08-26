@@ -135,7 +135,7 @@ export default function SettingsPage() {
         }
         setAthletesByGroup(athletesData);
         
-        if (shouldSetAccordion && groupsData.length > 0) {
+        if (shouldSetAccordion && groupsData.length > 0 && !openAccordion) {
             setOpenAccordion(groupsData[0].id);
         }
 
@@ -153,6 +153,7 @@ export default function SettingsPage() {
   
   useEffect(() => {
     fetchAllData(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   // Group Management Handlers
@@ -440,42 +441,42 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             {groups.length > 0 ? (
-                <Accordion type="single" collapsible className="w-full" value={openAccordion} onValueChange={setOpenAccordion}>
+                <Accordion type="single" collapsible className="w-full" value={openAccordion || undefined} onValueChange={setOpenAccordion}>
                 {groups.map(group => (
                     <AccordionItem value={group.id} key={group.id}>
-                    <AccordionTrigger className="text-lg font-medium hover:no-underline">
-                        <div className="flex items-center gap-4 flex-1">
-                            <span className="flex-1 text-right">{group.name}</span>
-                            <div className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                                <Button variant="ghost" size="icon" onClick={() => handleOpenGroupDialog(group)}>
-                                    <Edit className="h-4 w-4" />
-                                </Button>
-                                
-                                <AlertDialog onOpenChange={(isOpen) => !isOpen && setGroupToDelete(null)}>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" onClick={() => setGroupToDelete(group)}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            פעולה זו תמחק את הקבוצה "{groupToDelete?.name}" לצמיתות. לא ניתן לבטל פעולה זו.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>ביטול</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteGroup}>מחק</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+                      <div className="flex items-center w-full">
+                        <AccordionTrigger className="text-lg font-medium hover:no-underline flex-1">
+                            <span className="flex-1 text-right me-4">{group.name}</span>
+                        </AccordionTrigger>
+                        <div className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity me-4">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenGroupDialog(group)}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
                             
-                            </div>
+                            <AlertDialog onOpenChange={(isOpen) => !isOpen && setGroupToDelete(null)}>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={() => setGroupToDelete(group)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        פעולה זו תמחק את הקבוצה "{groupToDelete?.name}" לצמיתות. לא ניתן לבטל פעולה זו.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>ביטול</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteGroup}>מחק</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        
                         </div>
-                    </AccordionTrigger>
+                      </div>
                     <AccordionContent>
-                        <div className="space-y-4 p-4">
+                        <div className="space-y-4 pt-2">
                             <Button variant="outline" size="sm" className="mb-4" onClick={() => handleOpenAthleteDialog(null, group.id)}>
                                 <UserPlus className="me-2 h-4 w-4" /> הוסף ספורטאי לקבוצה
                             </Button>
