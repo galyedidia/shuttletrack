@@ -88,14 +88,10 @@ export default function SessionsDashboardPage() {
 
   const filteredSessions = useMemo(() => {
     return sessions.filter(s => {
-        // Parse the session date string 'YYYY-MM-DD' as UTC
         const [year, month, day] = s.date.split('-').map(Number);
         const sessionDate = new Date(Date.UTC(year, month - 1, day));
-
-        // Get the selected date and treat it as UTC
         const selDate = new Date(selectedDate);
         const selectedDateUTC = new Date(Date.UTC(selDate.getFullYear(), selDate.getMonth(), selDate.getDate()));
-
         return sessionDate.getTime() === selectedDateUTC.getTime();
     });
   }, [sessions, selectedDate]);
@@ -110,13 +106,12 @@ export default function SessionsDashboardPage() {
       };
       const newSession = await addTrainingSession(newSessionData);
       
-      // Immediately update state to reflect the change
       setSessions(prev => [...prev, newSession]);
       setNewSessionGroupId('');
       
        toast({
         title: "אימון נוצר בהצלחה",
-        description: `האימון לקבוצה נוצר לתאריך ${new Date(newSession.date).toLocaleDateString('he-IL')}.`,
+        description: `האימון לקבוצה נוצר לתאריך ${new Date(newSession.date + 'T00:00:00').toLocaleDateString('he-IL')}.`,
       });
     } catch (error) {
        toast({
@@ -129,7 +124,6 @@ export default function SessionsDashboardPage() {
   
   const getGroupById = (groupId: string) => groups.find(g => g.id === groupId);
   
-  // This is a new helper state to manage athlete counts for display
   const [athleteCounts, setAthleteCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -203,7 +197,7 @@ export default function SessionsDashboardPage() {
                 <CardHeader>
                   <CardTitle>{group?.name}</CardTitle>
                   <CardDescription>
-                    אימון בתאריך {new Date(session.date).toLocaleDateString('he-IL', { timeZone: 'UTC' })}
+                    אימון בתאריך {new Date(session.date + 'T00:00:00').toLocaleDateString('he-IL')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -215,7 +209,7 @@ export default function SessionsDashboardPage() {
                 <CardFooter>
                   <Button className="w-full" onClick={() => router.push(`/session/${session.id}`)}>
                     <Edit className="me-2 h-4 w-4" />
-                    {new Date(session.date).setUTCHours(0,0,0,0) >= new Date(new Date().setUTCHours(0,0,0,0)).getTime() ? 'ערוך אימון' : 'הצג אימון'}
+                    {new Date(session.date + 'T00:00:00').setHours(0,0,0,0) >= new Date(new Date().setHours(0,0,0,0)).getTime() ? 'ערוך אימון' : 'הצג אימון'}
                   </Button>
                 </CardFooter>
               </Card>
@@ -268,3 +262,5 @@ export default function SessionsDashboardPage() {
     </div>
   );
 }
+
+    

@@ -151,7 +151,7 @@ export default function AttendancePage() {
         <CardHeader>
             <CardTitle>רישום נוכחות: {selectedGroup.name}</CardTitle>
             <CardDescription>
-                {new Date(session.date).toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                {new Date(session.date).toLocaleDateString('he-IL', { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 {isPastSession && <span className="text-destructive font-semibold ms-4">(אימון עבר - צפייה בלבד)</span>}
             </CardDescription>
         </CardHeader>
@@ -168,15 +168,15 @@ export default function AttendancePage() {
                 <div className="flex justify-between items-center">
                    <CardTitle className="text-lg">{`${athlete.firstName} ${athlete.lastName}`}</CardTitle>
                    <div className="flex items-center space-x-2 space-x-reverse">
-                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
+                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
                        <Switch
                         id={`attendance-${athlete.id}`}
-                        checked={isPresent}
-                        onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', checked)}
+                        checked={!isPresent}
+                        onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', !checked)}
                         dir="ltr"
                         disabled={isPastSession}
                        />
-                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
+                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
                     </div>
                 </div>
               </CardHeader>
@@ -244,3 +244,5 @@ export default function AttendancePage() {
     </div>
   );
 }
+
+    
