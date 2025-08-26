@@ -60,11 +60,78 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup, addAthlete, updateAthlete, deleteAthlete, addCoach, updateCoach, deleteCoach, addAbsenceReason, updateAbsenceReason, deleteAbsenceReason } from "@/lib/data";
-import { UserPlus, PlusCircle, Trash2, Edit } from 'lucide-react';
+import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup, updateGroup, deleteGroup, addAthlete, updateAthlete, deleteAthlete, addCoach, updateCoach, deleteCoach, addAbsenceReason, updateAbsenceReason, deleteAbsenceReason, seedDatabaseWithMockData } from "@/lib/data";
+import { UserPlus, PlusCircle, Trash2, Edit, TestTube2, Loader2 } from 'lucide-react';
 import type { Athlete, Group, Coach, AbsenceReason } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 
+
+function DeveloperTools() {
+    const { toast } = useToast();
+    const [isSeeding, setIsSeeding] = useState(false);
+
+    const handleSeedData = async () => {
+        setIsSeeding(true);
+        try {
+            await seedDatabaseWithMockData();
+            toast({
+                title: "הצלחה!",
+                description: "הדאטה לדוגמה נוצר בהצלחה. רענן את עמוד הדוחות כדי לראות את השינויים.",
+            });
+        } catch (error: any) {
+            console.error("Failed to seed database:", error);
+            toast({
+                title: "שגיאה ביצירת דאטה",
+                description: error.message || "אירעה שגיאה לא צפויה.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSeeding(false);
+        }
+    };
+
+    return (
+         <Card>
+            <CardHeader>
+                <CardTitle>כלי פיתוח</CardTitle>
+                <CardDescription>פעולות אלו מיועדות לבדיקת המערכת.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                   <div className="flex items-center justify-between rounded-lg border p-4">
+                     <div className="space-y-0.5">
+                        <h3 className="font-medium">יצירת דאטה לדוגמה</h3>
+                        <p className="text-sm text-muted-foreground">
+                            יוצר מספר חודשים של אימונים ונוכחות רנדומלית עבור כל הקבוצות והספורטאים הקיימים.
+                        </p>
+                     </div>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="secondary" disabled={isSeeding}>
+                                {isSeeding ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <TestTube2 className="me-2 h-4 w-4" />}
+                                {isSeeding ? 'יוצר דאטה...' : 'הוסף דאטה לדוגמה'}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                פעולה זו תוסיף כמות גדולה של אימונים לדוגמה למערכת. 
+                                אין דרך קלה למחוק רק את הדאטה הזה לאחר מכן.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>ביטול</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleSeedData}>כן, הוסף דאטה</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                   </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -111,7 +178,7 @@ export default function SettingsPage() {
   const [newReasonLabel, setNewReasonLabel] = useState("");
   const [newReasonInput, setNewReasonInput] = useState("");
 
-  const fetchAllData = async (shouldSetAccordion = false) => {
+  const fetchAllData = useCallback(async (shouldSetAccordion = false) => {
     try {
         setLoading(true);
         const [groupsData, coachesData, reasonsData] = await Promise.all([
@@ -149,12 +216,12 @@ export default function SettingsPage() {
     } finally {
         setLoading(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toast]);
   
   useEffect(() => {
     fetchAllData(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchAllData]);
   
   // Group Management Handlers
   const handleOpenGroupDialog = (group: Group | null = null) => {
@@ -402,10 +469,11 @@ export default function SettingsPage() {
   return (
     <>
     <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="groups">קבוצות וספורטאים</TabsTrigger>
         <TabsTrigger value="coaches">מאמנים</TabsTrigger>
         <TabsTrigger value="reasons">סיבות היעדרות</TabsTrigger>
+        <TabsTrigger value="developer">כלי פיתוח</TabsTrigger>
       </TabsList>
       
       <TabsContent value="groups">
@@ -654,6 +722,10 @@ export default function SettingsPage() {
             </Table>
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="developer">
+        <DeveloperTools />
       </TabsContent>
     </Tabs>
     
