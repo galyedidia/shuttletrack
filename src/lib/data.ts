@@ -1,7 +1,7 @@
 
 import type { Athlete, Group, Coach, AbsenceReason, TrainingSession, AttendanceRecord } from '@/types';
 import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, query, where, addDoc, updateDoc, writeBatch, deleteDoc, startAt, endAt, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, addDoc, updateDoc, writeBatch, deleteDoc, startAt, endAt, orderBy, endBefore } from 'firebase/firestore';
 
 
 export async function getCoaches(): Promise<Coach[]> {
@@ -78,7 +78,7 @@ export async function getTrainingSessionsForGroupInMonth(groupId: string, year: 
         where('groupId', '==', groupId),
         orderBy('date'),
         startAt(startDate),
-        endAt(endDate)
+        endBefore(endDate)
     );
 
     const snapshot = await getDocs(q);
