@@ -241,7 +241,7 @@ export async function seedDatabaseWithMockData() {
     }
 
     const today = new Date();
-    const mockComments = ["Great focus today!", "Needs to work on footwork.", "Excellent attitude.", "A bit tired, but pushed through.", "Good progress on serves."];
+    const mockComments = ["ריכוז מעולה היום!", "צריך לעבוד על עבודת הרגליים.", "גישה מצוינת.", "קצת עייף, אבל התמיד.", "התקדמות טובה בחבטות ההגשה."];
     
     // Generate data for the last 3 months
     for (let monthOffset = 2; monthOffset >= 0; monthOffset--) {
