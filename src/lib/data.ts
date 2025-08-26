@@ -1,7 +1,7 @@
 
 import type { Athlete, Group, Coach, AbsenceReason, TrainingSession, AttendanceRecord } from '@/types';
 import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, query, where, addDoc, updateDoc, writeBatch, deleteDoc, startAt, endAt, orderBy, endBefore } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, addDoc, updateDoc, writeBatch, deleteDoc, startAt, endAt, orderBy } from 'firebase/firestore';
 
 
 export async function getCoaches(): Promise<Coach[]> {
@@ -69,16 +69,16 @@ export async function getTrainingSessions(): Promise<TrainingSession[]> {
 
 export async function getTrainingSessionsForGroupInMonth(groupId: string, year: number, month: number): Promise<TrainingSession[]> {
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const nextMonth = month === 12 ? 1 : month + 1;
-    const nextYear = month === 12 ? year + 1 : year;
-    const endDate = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+    // Get the last day of the given month
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
     const q = query(
         collection(db, 'trainingSessions'),
         where('groupId', '==', groupId),
         orderBy('date'),
         startAt(startDate),
-        endBefore(endDate)
+        endAt(endDate)
     );
 
     const snapshot = await getDocs(q);
