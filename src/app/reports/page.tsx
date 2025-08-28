@@ -223,6 +223,12 @@ export default function ReportsPage() {
     return groups.find(g => g.id === selectedGroup)?.name || '...';
   }, [groups, selectedGroup]);
   
+  const getAttendanceBadgeVariant = (percentage: number) => {
+    if (percentage > 85) return 'default';
+    if (percentage < 70) return 'destructive';
+    return 'secondary';
+  }
+
   if (loading) {
       return <div>טוען נתונים...</div>
   }
@@ -291,7 +297,7 @@ export default function ReportsPage() {
                 <TableRow key={row.name} onClick={() => handleAthleteClick(row)} className="cursor-pointer">
                     <TableCell className="font-medium">{row.name}</TableCell>
                     <TableCell className="text-center">
-                         <Badge variant={row.attendancePercentage > 85 ? "default" : "secondary"} className={row.attendancePercentage > 95 ? 'bg-green-500' : row.attendancePercentage < 75 ? 'bg-red-500': ''}>
+                         <Badge variant={getAttendanceBadgeVariant(row.attendancePercentage)}>
                             {`${row.attendancePercentage}% (${row.attendedSessions}/${row.totalSessions})`}
                         </Badge>
                     </TableCell>
