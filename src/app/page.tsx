@@ -9,6 +9,17 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -33,9 +44,9 @@ import {
   DialogTrigger,
   DialogClose
 } from "@/components/ui/dialog"
-import { getGroups, getTrainingSessions, addTrainingSession, getAthletesInGroup } from "@/lib/data";
+import { getGroups, getTrainingSessions, addTrainingSession, getAthletesInGroup, deleteTrainingSession } from "@/lib/data";
 import type { TrainingSession, Group, Athlete } from '@/types';
-import { PlusCircle, Calendar as CalendarIcon, Users, Edit, Eye } from "lucide-react";
+import { PlusCircle, Calendar as CalendarIcon, Users, Edit, Eye, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { format, parse } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -72,6 +83,13 @@ function SessionsDashboard() {
     }, 60 * 1000); // every minute
     return () => clearInterval(interval);
   }, []);
+
+  const fetchSessions = async () => {
+    setLoading(true);
+    const sessionsData = await getTrainingSessions();
+    setSessions(sessionsData);
+    setLoading(false);
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -123,7 +141,7 @@ function SessionsDashboard() {
         const selDate = new Date(selectedDate);
         const selectedDateUTC = new Date(Date.UTC(selDate.getFullYear(), selDate.getMonth(), selDate.getDate()));
         return sessionDate.getTime() === selectedDateUTC.getTime();
-    });
+    }).sort((a,b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
   }, [sessions, selectedDate]);
 
   const handleCreateSession = async () => {
@@ -144,6 +162,7 @@ function SessionsDashboard() {
         date: selectedDateString,
         groupId: newSessionGroupId,
         attendance,
+        createdAt: new Date().toISOString(),
       };
       const newSession = await addTrainingSession(newSessionData);
       
@@ -163,6 +182,23 @@ function SessionsDashboard() {
       });
     }
   };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    try {
+        await deleteTrainingSession(sessionId);
+        await fetchSessions(); // Refetch sessions to update the UI
+        toast({
+            title: "אימון נמחק",
+            description: "האימון נמחק בהצלחה."
+        })
+    } catch(error) {
+        toast({
+            title: "שגיאה במחיקת אימון",
+            description: "אירעה שגיאה בעת מחיקת האימון.",
+            variant: "destructive"
+        })
+    }
+  }
   
   const getGroupById = (groupId: string) => groups.find(g => g.id === groupId);
   
@@ -181,6 +217,11 @@ function SessionsDashboard() {
   
   const handleSessionNavigation = (sessionId: string) => {
     router.push(`/session/${sessionId}?returnDate=${selectedDateString}`);
+  }
+
+  const formatCreationTime = (isoString?: string) => {
+      if (!isoString) return '';
+      return new Date(isoString).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
   }
 
   return (
@@ -220,14 +261,39 @@ function SessionsDashboard() {
             const group = getGroupById(session.groupId);
             const athleteCount = athleteCounts[session.id] || 0;
             const isPast = new Date(session.date + 'T00:00:00').setHours(0,0,0,0) < new Date(new Date().setHours(0,0,0,0)).getTime();
+            const creationTime = formatCreationTime(session.createdAt);
 
             return (
               <Card key={session.id}>
                 <CardHeader>
-                  <CardTitle>{group?.name}</CardTitle>
-                  <CardDescription>
-                    {new Date(session.date + 'T00:00:00').toLocaleDateString('he-IL')}
-                  </CardDescription>
+                  <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle>{group?.name}</CardTitle>
+                        <CardDescription>
+                            {new Date(session.date + 'T00:00:00').toLocaleDateString('he-IL')}
+                            {creationTime && <span className="ms-2 font-mono text-xs">({creationTime})</span>}
+                        </CardDescription>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                          <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                              פעולה זו תמחק את האימון של קבוצת {group?.name} מתאריך זה לצמיתות. לא ניתן לבטל פעולה זו.
+                          </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                          <AlertDialogCancel>ביטול</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteSession(session.id)}>מחק</AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between">
                   <div className="flex items-center text-muted-foreground">
@@ -273,7 +339,7 @@ function SessionsDashboard() {
                         </SelectTrigger>
                         <SelectContent>
                             {groups.map(group => (
-                                <SelectItem key={group.id} value={group.id} disabled={filteredSessions.some(s => s.groupId === group.id)}>{group.name}</SelectItem>
+                                <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>

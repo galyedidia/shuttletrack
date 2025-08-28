@@ -30,7 +30,7 @@ export async function getAthletes(athleteIds?: string[]): Promise<Athlete[]> {
         if (athleteIds.length > 30) {
             console.warn("Querying for more than 30 athletes at once, this may lead to incomplete results.");
         }
-        q = query(athletesCol, where('__name__', 'in', athleteIds));
+        q = query(athletesCol, where( '__name__', 'in', athleteIds));
     } else {
         q = query(athletesCol);
     }
@@ -148,6 +148,12 @@ export async function updateAttendance(sessionId: string, attendance: Record<str
     const sessionRef = doc(db, 'trainingSessions', sessionId);
     await updateDoc(sessionRef, { attendance });
 }
+
+export async function deleteTrainingSession(sessionId: string): Promise<void> {
+    const sessionRef = doc(db, 'trainingSessions', sessionId);
+    await deleteDoc(sessionRef);
+}
+
 
 // --- Group Management ---
 export async function addGroup(name: string): Promise<Group> {
@@ -338,6 +344,7 @@ export async function seedDatabaseWithMockData() {
                         date: dateString,
                         groupId: group.id,
                         attendance,
+                        createdAt: sessionDate.toISOString(),
                     };
                     
                     const sessionRef = doc(collection(db, 'trainingSessions'));
@@ -349,5 +356,3 @@ export async function seedDatabaseWithMockData() {
 
     await batch.commit();
 }
-
-    

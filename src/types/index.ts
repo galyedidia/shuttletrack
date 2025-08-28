@@ -32,6 +32,7 @@ export interface TrainingSession {
   date: string; // YYYY-MM-DD
   groupId: string;
   attendance: Record<string, AttendanceRecord>;
+  createdAt?: string; // ISO string
 }
 
 
@@ -39,4 +40,3 @@ export interface AbsenceReason {
   id: string;
   label: string;
 }
-
