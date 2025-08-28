@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -37,7 +38,7 @@ import {
 } from "@/components/ui/dialog"
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileDown, Loader2 } from 'lucide-react';
-import { getGroups, getAthletesInGroup, getTrainingSessionsForGroupInMonth, getAbsenceReasons } from '@/lib/data';
+import { getGroups, getAthletes, getTrainingSessionsForGroupInMonth, getAbsenceReasons } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import type { Group, Athlete, TrainingSession, AbsenceReason } from '@/types';
 
@@ -52,7 +53,8 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 interface ReportData {
     athleteId: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     attendancePercentage: number;
     attendedSessions: number;
     totalSessions: number;
@@ -114,51 +116,67 @@ export default function ReportsPage() {
     setReportData([]);
 
     try {
-        const [athletes, sessions] = await Promise.all([
-            getAthletesInGroup(selectedGroup),
-            getTrainingSessionsForGroupInMonth(selectedGroup, selectedYear, selectedMonth)
-        ]);
-
+        const sessions = await getTrainingSessionsForGroupInMonth(selectedGroup, selectedYear, selectedMonth);
         setSessionsForMonth(sessions);
         const totalSessions = sessions.length;
 
-        if (totalSessions === 0 || athletes.length === 0) {
+        if (totalSessions === 0) {
             setReportData([]);
             setLoadingReport(false);
             return;
         }
 
-        const calculatedData = athletes.map(athlete => {
-            let attendedSessions = 0;
-            let totalRating = 0;
-            let ratedSessions = 0;
+        // Aggregate all unique athlete IDs from all sessions in the month
+        const athleteStats: Record<string, { attended: number; totalRating: number; ratedCount: number }> = {};
+        const athleteIdsInReport = new Set<string>();
 
-            sessions.forEach(session => {
-                const record = session.attendance[athlete.id];
+        sessions.forEach(session => {
+            Object.keys(session.attendance).forEach(athleteId => {
+                athleteIdsInReport.add(athleteId);
+                if (!athleteStats[athleteId]) {
+                    athleteStats[athleteId] = { attended: 0, totalRating: 0, ratedCount: 0 };
+                }
+                const record = session.attendance[athleteId];
                 if (record?.present) {
-                    attendedSessions++;
+                    athleteStats[athleteId].attended++;
                     if (record.rating && record.rating > 0) {
-                        totalRating += record.rating;
-                        ratedSessions++;
+                        athleteStats[athleteId].totalRating += record.rating;
+                        athleteStats[athleteId].ratedCount++;
                     }
                 }
             });
+        });
+        
+        if(athleteIdsInReport.size === 0) {
+            setReportData([]);
+            setLoadingReport(false);
+            return;
+        }
 
-            const attendancePercentage = totalSessions > 0 ? Math.round((attendedSessions / totalSessions) * 100) : 0;
-            const averageRating = ratedSessions > 0 ? parseFloat((totalRating / ratedSessions).toFixed(1)) : 0;
-            const absences = totalSessions - attendedSessions;
+        // Fetch details for all athletes who participated
+        const athletes = await getAthletes(Array.from(athleteIdsInReport));
+        const athletesMap = new Map(athletes.map(a => [a.id, a]));
+
+        const calculatedData = Array.from(athleteIdsInReport).map(athleteId => {
+            const stats = athleteStats[athleteId];
+            const athlete = athletesMap.get(athleteId);
+            
+            const attendancePercentage = totalSessions > 0 ? Math.round((stats.attended / totalSessions) * 100) : 0;
+            const averageRating = stats.ratedCount > 0 ? parseFloat((stats.totalRating / stats.ratedCount).toFixed(1)) : 0;
+            const absences = totalSessions - stats.attended;
 
             return {
-                athleteId: athlete.id,
-                name: `${athlete.firstName} ${athlete.lastName}`,
+                athleteId,
+                firstName: athlete?.firstName || 'לא ידוע',
+                lastName: athlete?.lastName || '',
                 attendancePercentage,
-                attendedSessions,
+                attendedSessions: stats.attended,
                 totalSessions,
                 averageRating,
                 absences
             };
         });
-
+        
         setReportData(calculatedData.sort((a,b) => b.attendancePercentage - a.attendancePercentage));
 
     } catch (error) {
@@ -212,7 +230,7 @@ export default function ReportsPage() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    const safeName = selectedAthleteReport.name.replace(/ /g, '_');
+    const safeName = `${selectedAthleteReport.firstName}_${selectedAthleteReport.lastName}`.replace(/ /g, '_');
     link.setAttribute('download', `report_${safeName}_${selectedMonth}-${selectedYear}.csv`);
     document.body.appendChild(link);
     link.click();
@@ -294,8 +312,8 @@ export default function ReportsPage() {
             </TableHeader>
             <TableBody>
                 {reportData.map((row) => (
-                <TableRow key={row.name} onClick={() => handleAthleteClick(row)} className="cursor-pointer">
-                    <TableCell className="font-medium">{row.name}</TableCell>
+                <TableRow key={row.athleteId} onClick={() => handleAthleteClick(row)} className="cursor-pointer">
+                    <TableCell className="font-medium">{`${row.firstName} ${row.lastName}`}</TableCell>
                     <TableCell className="text-center">
                          <Badge variant={getAttendanceBadgeVariant(row.attendancePercentage)}>
                             {`${row.attendancePercentage}% (${row.attendedSessions}/${row.totalSessions})`}
@@ -318,7 +336,7 @@ export default function ReportsPage() {
     <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="max-w-2xl">
             <DialogHeader>
-                <DialogTitle>דוח מפורט: {selectedAthleteReport?.name}</DialogTitle>
+                <DialogTitle>דוח מפורט: {selectedAthleteReport ? `${selectedAthleteReport.firstName} ${selectedAthleteReport.lastName}`: ''}</DialogTitle>
                 <DialogDescription>
                     פירוט אימונים עבור {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
                 </DialogDescription>
@@ -363,3 +381,5 @@ export default function ReportsPage() {
     </>
   );
 }
+
+    

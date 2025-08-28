@@ -1,4 +1,5 @@
 
+
 import type { Athlete, Group, Coach, AbsenceReason, TrainingSession, AttendanceRecord } from '@/types';
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, query, where, addDoc, updateDoc, writeBatch, deleteDoc, startAt, endAt, orderBy } from 'firebase/firestore';
@@ -20,9 +21,20 @@ export async function getCoachByPhone(phone: string): Promise<Coach | null> {
     return { id: docData.id, ...docData.data() } as Coach;
 }
 
-export async function getAthletes(): Promise<Athlete[]> {
+export async function getAthletes(athleteIds?: string[]): Promise<Athlete[]> {
     const athletesCol = collection(db, 'athletes');
-    const snapshot = await getDocs(athletesCol);
+    let q;
+    if (athleteIds && athleteIds.length > 0) {
+        // Firestore 'in' query is limited to 30 elements. If more, we need multiple queries.
+        // For this app's scale, we assume one query is enough.
+        if (athleteIds.length > 30) {
+            console.warn("Querying for more than 30 athletes at once, this may lead to incomplete results.");
+        }
+        q = query(athletesCol, where('__name__', 'in', athleteIds));
+    } else {
+        q = query(athletesCol);
+    }
+    const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Athlete));
 }
 
@@ -270,11 +282,16 @@ export async function seedDatabaseWithMockData() {
 
     const today = new Date();
     const mockComments = [
-      "ריכוז מעולה היום!", 
-      "צריך לעבוד על עבודת הרגליים.", 
-      "גישה מצוינת.", 
-      "קצת עייף, אבל התמיד.", 
-      "התקדמות טובה בחבטות ההגשה."
+      "ריכוז מעולה היום!",
+      "צריך לעבוד על עבודת הרגליים.",
+      "גישה מצוינת.",
+      "קצת עייף, אבל התמיד.",
+      "התקדמות טובה בחבטות ההגשה.",
+      "מראה סימני שיפור בקבלת מכה.",
+      "זריזות מרשימה על המגרש.",
+      "זקוק ליותר מיקוד במהלך תרגילים.",
+      "הגיש היטב היום.",
+      "עוצמה נהדרת בחבטות."
     ];
     
     // Generate data for the last 3 months
@@ -332,3 +349,5 @@ export async function seedDatabaseWithMockData() {
 
     await batch.commit();
 }
+
+    
