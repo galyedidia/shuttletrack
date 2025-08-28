@@ -1,14 +1,13 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,18 +36,31 @@ import {
 import { getGroups, getTrainingSessions, addTrainingSession, getAthletesInGroup } from "@/lib/data";
 import type { TrainingSession, Group, Athlete } from '@/types';
 import { PlusCircle, Calendar as CalendarIcon, Users, Edit, Eye } from "lucide-react";
-import { useRouter } from 'next/navigation';
-import { format } from "date-fns";
+import { useRouter, useSearchParams } from 'next/navigation';
+import { format, parse } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
-export default function SessionsDashboardPage() {
+function SessionsDashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const getInitialDate = () => {
+    const dateParam = searchParams.get('date');
+    if (dateParam) {
+      // Ensure parsing is robust
+      const parsedDate = parse(dateParam, 'yyyy-MM-dd', new Date());
+      if (!isNaN(parsedDate.getTime())) {
+          return parsedDate;
+      }
+    }
+    return new Date();
+  };
+
+  const [selectedDate, setSelectedDate] = useState<Date>(getInitialDate());
   const [newSessionGroupId, setNewSessionGroupId] = useState<string>('');
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [now, setNow] = useState(new Date());
@@ -74,6 +86,15 @@ export default function SessionsDashboardPage() {
     }
     fetchData();
   }, []);
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+        setSelectedDate(date);
+        const dateString = format(date, "yyyy-MM-dd");
+        router.push(`/?date=${dateString}`);
+        setIsDatePickerOpen(false);
+    }
+  }
 
 
   const sessionDates = useMemo(() => {
@@ -133,7 +154,7 @@ export default function SessionsDashboardPage() {
         title: "אימון נוצר בהצלחה",
         description: `האימון לקבוצה נוצר לתאריך ${new Date(newSession.date + 'T00:00:00').toLocaleDateString('he-IL')}.`,
       });
-      router.push(`/session/${newSession.id}`);
+      router.push(`/session/${newSession.id}?returnDate=${selectedDateString}`);
     } catch (error) {
        toast({
         title: "שגיאה ביצירת אימון",
@@ -157,6 +178,10 @@ export default function SessionsDashboardPage() {
   if (loading) {
     return <div>טוען נתונים...</div>
   }
+  
+  const handleSessionNavigation = (sessionId: string) => {
+    router.push(`/session/${sessionId}?returnDate=${selectedDateString}`);
+  }
 
   return (
     <div className="space-y-6">
@@ -178,12 +203,7 @@ export default function SessionsDashboardPage() {
                     <Calendar
                       mode="single"
                       selected={selectedDate}
-                      onSelect={(date) => {
-                          if (date) {
-                              setSelectedDate(date);
-                              setIsDatePickerOpen(false);
-                          }
-                      }}
+                      onSelect={handleDateSelect}
                       initialFocus
                       modifiers={{ withSession: sessionDates }}
                       modifiersClassNames={{ withSession: 'day-with-session' }}
@@ -214,7 +234,7 @@ export default function SessionsDashboardPage() {
                     <Users className="me-2 h-4 w-4" />
                     <span>{athleteCount} ספורטאים</span>
                   </div>
-                  <Button size="sm" onClick={() => router.push(`/session/${session.id}`)}>
+                  <Button size="sm" onClick={() => handleSessionNavigation(session.id)}>
                     {isPast ? <Eye className="me-2 h-4 w-4" /> : <Edit className="me-2 h-4 w-4" />}
                     {isPast ? 'הצג' : 'ערוך'}
                   </Button>
@@ -268,4 +288,13 @@ export default function SessionsDashboardPage() {
       )}
     </div>
   );
+}
+
+
+export default function SessionsDashboardPage() {
+    return (
+        <Suspense fallback={<div>טוען...</div>}>
+            <SessionsDashboard />
+        </Suspense>
+    )
 }

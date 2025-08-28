@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { notFound, useParams, useRouter } from 'next/navigation';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import { notFound, useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -22,7 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { getTrainingSessionById, getAbsenceReasons, getAthletes, getGroupById, updateAttendance } from "@/lib/data";
+import { getTrainingSessionById, getAbsenceReasons, getAthletes, getGroupById } from "@/lib/data";
 import type { AttendanceRecord, Athlete, TrainingSession, Group, AbsenceReason } from '@/types';
 import { Star, Save, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -42,11 +42,14 @@ const StarRating = ({ rating, setRating, isReadOnly }: { rating: number, setRati
   );
 };
 
-export default function AttendancePage() {
+function AttendancePageContent() {
   const { toast } = useToast();
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const sessionId = params.id as string;
+  
+  const returnDate = searchParams.get('returnDate');
 
   const [session, setSession] = useState<TrainingSession | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -140,6 +143,14 @@ export default function AttendancePage() {
       });
     }
   };
+  
+  const handleClose = () => {
+      if (returnDate) {
+          router.push(`/?date=${returnDate}`);
+      } else {
+          router.push('/');
+      }
+  }
 
   if (loading) {
       return <div className="flex h-screen items-center justify-center">טוען נתוני אימון...</div>;
@@ -173,7 +184,7 @@ export default function AttendancePage() {
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-lg">{`${athlete.firstName} ${athlete.lastName}`}</CardTitle>
                     <div className="flex items-center space-x-2 space-x-reverse">
-                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
+                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
                         <Switch
                           id={`attendance-${athlete.id}`}
                           checked={isPresent}
@@ -181,7 +192,7 @@ export default function AttendancePage() {
                           dir="ltr"
                           disabled={isPastSession}
                         />
-                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
+                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
                       </div>
                   </div>
                 </CardHeader>
@@ -249,11 +260,19 @@ export default function AttendancePage() {
             שמור נוכחות
           </Button>
         )}
-        <Button variant="outline" onClick={() => router.push('/')}>
+        <Button variant="outline" onClick={handleClose}>
            <XCircle className="me-2 h-4 w-4" />
            סגור
         </Button>
       </CardFooter>
     </div>
   );
+}
+
+export default function AttendancePage() {
+    return (
+        <Suspense fallback={<div>טוען...</div>}>
+            <AttendancePageContent />
+        </Suspense>
+    )
 }
