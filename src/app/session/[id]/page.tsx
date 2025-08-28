@@ -34,7 +34,7 @@ const StarRating = ({ rating, setRating, isReadOnly }: { rating: number, setRati
       {[5, 4, 3, 2, 1].map((value) => (
         <Star
           key={value}
-          className={`cursor-pointer h-5 w-5 ${rating >= value ? "text-accent fill-accent" : "text-muted-foreground"} ${isReadOnly ? 'cursor-not-allowed' : ''}`}
+          className={`cursor-pointer h-5 w-5 ${rating >= value ? "text-primary fill-primary" : "text-muted-foreground"} ${isReadOnly ? 'cursor-not-allowed' : ''}`}
           onClick={() => !isReadOnly && setRating(value)}
         />
       ))}
@@ -171,8 +171,8 @@ export default function AttendancePage() {
                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
                        <Switch
                         id={`attendance-${athlete.id}`}
-                        checked={!isPresent}
-                        onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', !checked)}
+                        checked={isPresent}
+                        onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', checked)}
                         dir="ltr"
                         disabled={isPastSession}
                        />
@@ -193,13 +193,12 @@ export default function AttendancePage() {
                         />
                      </div>
                      <div>
-                        <Label htmlFor={`comment-${athlete.id}`}>הערות פרטניות</Label>
                         <Textarea
                             id={`comment-${athlete.id}`}
                             placeholder={isPastSession ? 'אין הערה' : 'הוסף הערה...'}
                             value={record.comment || ""}
                             onChange={(e) => handleAttendanceChange(athlete.id, 'comment', e.target.value)}
-                            className="mt-1"
+                            className="mt-1 min-h-[60px]"
                             readOnly={isPastSession}
                         />
                      </div>
@@ -211,6 +210,7 @@ export default function AttendancePage() {
                           onValueChange={(value) => handleAttendanceChange(athlete.id, 'absenceReason', value)}
                           value={record.absenceReason || ""}
                           disabled={isPastSession}
+                          dir="rtl"
                         >
                           <SelectTrigger id={`absence-${athlete.id}`} className="mt-1">
                             <SelectValue placeholder={isPastSession ? 'לא נבחרה סיבה' : 'בחר סיבה'} />
@@ -244,5 +244,3 @@ export default function AttendancePage() {
     </div>
   );
 }
-
-    
