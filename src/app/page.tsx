@@ -162,15 +162,14 @@ export default function SessionsDashboardPage() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <CardTitle>ניהול אימונים</CardTitle>
-            <div className="flex items-center gap-2">
+        <CardHeader className="items-center">
+            <div className="flex flex-col items-center gap-4">
+                <CardTitle>ניהול אימונים</CardTitle>
                 <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant={"outline"}
-                      className="w-[280px] justify-start text-left font-normal"
+                      className="w-[280px] justify-center text-left font-normal"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {selectedDate ? format(selectedDate, "PPP") : <span>בחר תאריך</span>}
@@ -193,7 +192,6 @@ export default function SessionsDashboardPage() {
                   </PopoverContent>
                 </Popover>
             </div>
-          </div>
         </CardHeader>
       </Card>
 

@@ -43,7 +43,7 @@ import { AppLogo } from "@/components/icons";
 import { useAuth } from "@/lib/auth";
 
 const navItems = [
-  { href: "/", label: "לוח נוכחות", icon: ClipboardList },
+  { href: "/", label: "לוח אימונים", icon: ClipboardList },
   { href: "/analysis", label: "ניתוח הערות", icon: Lightbulb },
   { href: "/reports", label: "דוחות", icon: FileText },
   { href: "/settings", label: "הגדרות", icon: Settings },
