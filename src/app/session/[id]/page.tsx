@@ -128,6 +128,14 @@ function AttendancePageContent() {
     };
   };
 
+  const handleClose = () => {
+      if (returnDate) {
+          router.push(`/?date=${returnDate}`);
+      } else {
+          router.push('/');
+      }
+  }
+
   const handleSave = async () => {
     try {
       await updateAttendance(sessionId, attendance);
@@ -135,6 +143,7 @@ function AttendancePageContent() {
         title: "הנוכחות נשמרה בהצלחה",
         description: `נתוני הנוכחות עבור ${selectedGroup?.name} נשמרו.`,
       });
+      handleClose();
     } catch (error) {
        toast({
         title: "שגיאה בשמירת נוכחות",
@@ -144,14 +153,6 @@ function AttendancePageContent() {
     }
   };
   
-  const handleClose = () => {
-      if (returnDate) {
-          router.push(`/?date=${returnDate}`);
-      } else {
-          router.push('/');
-      }
-  }
-
   if (loading) {
       return <div className="flex h-screen items-center justify-center">טוען נתוני אימון...</div>;
   }
