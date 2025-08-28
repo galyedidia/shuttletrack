@@ -51,6 +51,15 @@ export default function SessionsDashboardPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [newSessionGroupId, setNewSessionGroupId] = useState<string>('');
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [now, setNow] = useState(new Date());
+
+  // Effect to update the current time every minute to check if the day has changed
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 60 * 1000); // every minute
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -79,12 +88,12 @@ export default function SessionsDashboardPage() {
   }, [selectedDate]);
 
   const isToday = useMemo(() => {
-      const today = new Date();
+      const today = new Date(now); // Use the 'now' state which updates every minute
       today.setHours(0,0,0,0);
       const selDate = new Date(selectedDate);
       selDate.setHours(0,0,0,0);
       return today.getTime() === selDate.getTime();
-  }, [selectedDate]);
+  }, [selectedDate, now]);
 
   const filteredSessions = useMemo(() => {
     return sessions.filter(s => {
@@ -264,5 +273,3 @@ export default function SessionsDashboardPage() {
     </div>
   );
 }
-
-    
