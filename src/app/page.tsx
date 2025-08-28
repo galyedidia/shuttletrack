@@ -178,6 +178,8 @@ export default function SessionsDashboardPage() {
                           }
                       }}
                       initialFocus
+                      modifiers={{ withSession: sessionDates }}
+                      modifiersClassNames={{ withSession: 'day-with-session' }}
                     />
                   </PopoverContent>
                 </Popover>

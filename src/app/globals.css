@@ -86,4 +86,7 @@
     @apply bg-background text-foreground;
     font-family: var(--font-body);
   }
+  .day-with-session {
+    @apply bg-secondary text-secondary-foreground font-bold;
+  }
 }
