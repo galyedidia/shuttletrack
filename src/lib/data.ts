@@ -85,6 +85,34 @@ export async function getTrainingSessionsForGroupInMonth(groupId: string, year: 
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainingSession));
 }
 
+export async function getAllCommentsForAthlete(athleteId: string): Promise<{ date: string; comment: string }[]> {
+    const q = query(
+      collection(db, 'trainingSessions'),
+      orderBy(`attendance.${athleteId}.comment`) // This query requires an index.
+    );
+    // Note: Firestore doesn't allow querying for the existence of a nested field
+    // in this way directly. We have to fetch all sessions and filter locally.
+    // This is inefficient but is the simplest approach without changing data structure.
+    // For a production app, a separate 'comments' collection would be better.
+    const snapshot = await getDocs(collection(db, 'trainingSessions'));
+    
+    const comments: { date: string; comment: string }[] = [];
+    
+    snapshot.forEach(doc => {
+      const session = doc.data() as Omit<TrainingSession, 'id'>;
+      const attendanceRecord = session.attendance?.[athleteId];
+      if (attendanceRecord && attendanceRecord.comment) {
+        comments.push({
+          date: session.date,
+          comment: attendanceRecord.comment
+        });
+      }
+    });
+
+    // Sort by date descending
+    return comments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
 
 export async function getTrainingSessionById(id: string): Promise<TrainingSession | null> {
     const sessionRef = doc(db, 'trainingSessions', id);
@@ -241,7 +269,13 @@ export async function seedDatabaseWithMockData() {
     }
 
     const today = new Date();
-    const mockComments = ["ריכוז מעולה היום!", "צריך לעבוד על עבודת הרגליים.", "גישה מצוינת.", "קצת עייף, אבל התמיד.", "התקדמות טובה בחבטות ההגשה."];
+    const mockComments = [
+      "ריכוז מעולה היום!", 
+      "צריך לעבוד על עבודת הרגליים.", 
+      "גישה מצוינת.", 
+      "קצת עייף, אבל התמיד.", 
+      "התקדמות טובה בחבטות ההגשה."
+    ];
     
     // Generate data for the last 3 months
     for (let monthOffset = 2; monthOffset >= 0; monthOffset--) {
