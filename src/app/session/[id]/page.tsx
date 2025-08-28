@@ -11,6 +11,16 @@ import {
   CardFooter,
   CardDescription,
 } from "@/components/ui/card";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -22,7 +32,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { getTrainingSessionById, getAbsenceReasons, getAthletes, getGroupById, updateAttendance } from "@/lib/data";
+import { getTrainingSessionById, getAbsenceReasons, getAthletes, updateAttendance } from "@/lib/data";
 import type { AttendanceRecord, Athlete, TrainingSession, Group, AbsenceReason } from '@/types';
 import { Star, Save, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -52,19 +62,22 @@ function AttendancePageContent() {
   const returnDate = searchParams.get('returnDate');
 
   const [session, setSession] = useState<TrainingSession | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [groupName, setGroupName] = useState<string>('');
   const [athletesInSession, setAthletesInSession] = useState<Athlete[]>([]);
   const [absenceReasons, setAbsenceReasons] = useState<AbsenceReason[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [attendance, setAttendance] = useState<Record<string, AttendanceRecord>>({});
+  const [originalAttendance, setOriginalAttendance] = useState<Record<string, AttendanceRecord>>({});
+  const [isUnsaved, setIsUnsaved] = useState(false);
+  const [isCloseAlertOpen, setIsCloseAlertOpen] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
         if (!sessionId) return;
         setLoading(true);
         
-        const sessionData = await getTrainingSessionById(sessionId);
+        const { sessionData, athletesData, reasonsData } = await getTrainingSessionById(sessionId);
         if (!sessionData) {
             setLoading(false);
             notFound();
@@ -72,17 +85,12 @@ function AttendancePageContent() {
         }
 
         setSession(sessionData);
-        setAttendance(JSON.parse(JSON.stringify(sessionData.attendance || {})));
+        setGroupName(sessionData.group?.name || '');
+        
+        const initialAttendance = JSON.parse(JSON.stringify(sessionData.attendance || {}));
+        setAttendance(initialAttendance);
+        setOriginalAttendance(initialAttendance);
 
-        const athleteIds = Object.keys(sessionData.attendance || {});
-
-        const [groupData, athletesData, reasonsData] = await Promise.all([
-            getGroupById(sessionData.groupId),
-            athleteIds.length > 0 ? getAthletes(athleteIds) : Promise.resolve([]),
-            getAbsenceReasons(),
-        ]);
-
-        setSelectedGroup(groupData);
         // sort athletes by first name
         athletesData.sort((a, b) => a.firstName.localeCompare(b.firstName));
         setAthletesInSession(athletesData);
@@ -91,6 +99,11 @@ function AttendancePageContent() {
     }
     fetchData();
   }, [sessionId]);
+
+  useEffect(() => {
+    const hasChanges = JSON.stringify(attendance) !== JSON.stringify(originalAttendance);
+    setIsUnsaved(hasChanges);
+  }, [attendance, originalAttendance]);
 
   const isPastSession = useMemo(() => {
     if (!session) return false;
@@ -113,8 +126,8 @@ function AttendancePageContent() {
         delete newRecord.absenceReason;
       }
       if (field === 'present' && value === false) {
-        delete newRecord.rating;
-        delete newRecord.comment;
+        newRecord.rating = 0;
+        newRecord.comment = '';
       }
       return { ...prev, [athleteId]: newRecord };
     });
@@ -127,23 +140,32 @@ function AttendancePageContent() {
       rating: 0
     };
   };
+  
+  const navigateBack = () => {
+    if (returnDate) {
+        router.push(`/?date=${returnDate}`);
+    } else {
+        router.push('/');
+    }
+  }
 
   const handleClose = () => {
-      if (returnDate) {
-          router.push(`/?date=${returnDate}`);
+      if(isUnsaved) {
+          setIsCloseAlertOpen(true);
       } else {
-          router.push('/');
+          navigateBack();
       }
   }
 
   const handleSave = async () => {
     try {
       await updateAttendance(sessionId, attendance);
+      setOriginalAttendance(JSON.parse(JSON.stringify(attendance))); // Update original state to reflect saved changes
       toast({
         title: "הנוכחות נשמרה בהצלחה",
-        description: `נתוני הנוכחות עבור ${selectedGroup?.name} נשמרו.`,
+        description: `נתוני הנוכחות עבור ${groupName} נשמרו.`,
       });
-      handleClose();
+      navigateBack();
     } catch (error) {
        toast({
         title: "שגיאה בשמירת נוכחות",
@@ -157,15 +179,16 @@ function AttendancePageContent() {
       return <div className="flex h-screen items-center justify-center">טוען נתוני אימון...</div>;
   }
   
-  if (!session || !selectedGroup) {
+  if (!session) {
       notFound();
   }
 
   return (
+    <>
     <div className="space-y-6">
       <Card>
         <CardHeader>
-            <CardTitle>רישום נוכחות: {selectedGroup.name}</CardTitle>
+            <CardTitle>רישום נוכחות: {groupName}</CardTitle>
             <CardDescription>
                 {new Date(session.date).toLocaleDateString('he-IL', { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 {isPastSession && <span className="text-destructive font-semibold ms-4">(אימון עבר - צפייה בלבד)</span>}
@@ -256,7 +279,7 @@ function AttendancePageContent() {
 
       <CardFooter className="flex justify-end sticky bottom-0 bg-background py-4 px-6 border-t gap-2">
         {!isPastSession && (
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} disabled={!isUnsaved}>
             <Save className="me-2 h-4 w-4" />
             שמור נוכחות
           </Button>
@@ -267,6 +290,21 @@ function AttendancePageContent() {
         </Button>
       </CardFooter>
     </div>
+    <AlertDialog open={isCloseAlertOpen} onOpenChange={setIsCloseAlertOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>שינויים שלא נשמרו</AlertDialogTitle>
+            <AlertDialogDescription>
+                יצאת לפני ששמרת את השינויים. האם אתה בטוח שברצונך לצאת ולבטל את השינויים?
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>ביטול</AlertDialogCancel>
+            <AlertDialogAction onClick={navigateBack}>כן, בטל שינויים וצא</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 

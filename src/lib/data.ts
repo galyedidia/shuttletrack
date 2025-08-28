@@ -25,17 +25,25 @@ export async function getAthletes(athleteIds?: string[]): Promise<Athlete[]> {
     const athletesCol = collection(db, 'athletes');
     let q;
     if (athleteIds && athleteIds.length > 0) {
-        // Firestore 'in' query is limited to 30 elements. If more, we need multiple queries.
-        // For this app's scale, we assume one query is enough.
-        if (athleteIds.length > 30) {
-            console.warn("Querying for more than 30 athletes at once, this may lead to incomplete results.");
+        // Firestore 'in' query is limited to 30 elements. Chunk if necessary.
+        const athleteChunks: string[][] = [];
+        for (let i = 0; i < athleteIds.length; i += 30) {
+            athleteChunks.push(athleteIds.slice(i, i + 30));
         }
-        q = query(athletesCol, where( '__name__', 'in', athleteIds));
+
+        const athletes: Athlete[] = [];
+        for (const chunk of athleteChunks) {
+            q = query(athletesCol, where( '__name__', 'in', chunk));
+            const snapshot = await getDocs(q);
+            athletes.push(...snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Athlete)));
+        }
+        return athletes;
+
     } else {
         q = query(athletesCol);
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Athlete));
     }
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Athlete));
 }
 
 export async function getAthletesInGroup(groupId: string): Promise<Athlete[]> {
@@ -126,15 +134,32 @@ export async function getAllCommentsForAthlete(athleteId: string): Promise<{ dat
 }
 
 
-export async function getTrainingSessionById(id: string): Promise<TrainingSession | null> {
+export async function getTrainingSessionById(id: string): Promise<{
+    sessionData: (TrainingSession & { group: Group | null }) | null,
+    athletesData: Athlete[],
+    reasonsData: AbsenceReason[],
+}> {
     const sessionRef = doc(db, 'trainingSessions', id);
     const docSnap = await getDoc(sessionRef);
 
-    if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as TrainingSession;
-    } else {
-        return null;
+    if (!docSnap.exists()) {
+        return { sessionData: null, athletesData: [], reasonsData: [] };
     }
+    
+    const sessionData = { id: docSnap.id, ...docSnap.data() } as TrainingSession;
+    const athleteIds = Object.keys(sessionData.attendance || {});
+
+    const [groupData, athletesData, reasonsData] = await Promise.all([
+        getGroupById(sessionData.groupId),
+        athleteIds.length > 0 ? getAthletes(athleteIds) : Promise.resolve([]),
+        getAbsenceReasons(),
+    ]);
+
+    return {
+        sessionData: { ...sessionData, group: groupData },
+        athletesData,
+        reasonsData
+    };
 }
 
 // --- WRITE OPERATIONS ---
