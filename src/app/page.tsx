@@ -108,10 +108,21 @@ export default function SessionsDashboardPage() {
   const handleCreateSession = async () => {
     if (!newSessionGroupId) return;
     try {
+      const athletesInGroup = await getAthletesInGroup(newSessionGroupId);
+      const attendance = athletesInGroup.reduce((acc, athlete) => {
+          acc[athlete.id] = {
+              athleteId: athlete.id,
+              present: true, // Default to present
+              rating: 0,
+              comment: ''
+          };
+          return acc;
+      }, {} as Record<string, any>);
+
       const newSessionData = {
         date: selectedDateString,
         groupId: newSessionGroupId,
-        attendance: {},
+        attendance,
       };
       const newSession = await addTrainingSession(newSessionData);
       
@@ -122,6 +133,7 @@ export default function SessionsDashboardPage() {
         title: "אימון נוצר בהצלחה",
         description: `האימון לקבוצה נוצר לתאריך ${new Date(newSession.date + 'T00:00:00').toLocaleDateString('he-IL')}.`,
       });
+      router.push(`/session/${newSession.id}`);
     } catch (error) {
        toast({
         title: "שגיאה ביצירת אימון",
@@ -133,26 +145,13 @@ export default function SessionsDashboardPage() {
   
   const getGroupById = (groupId: string) => groups.find(g => g.id === groupId);
   
-  const [athleteCounts, setAthleteCounts] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    const fetchCounts = async () => {
-        const counts: Record<string, number> = {};
-        for (const group of groups) {
-            try {
-              const athletes = await getAthletesInGroup(group.id);
-              counts[group.id] = athletes.length;
-            } catch (error) {
-               counts[group.id] = 0;
-            }
-        }
-        setAthleteCounts(counts);
-    };
-
-    if (groups.length > 0) {
-        fetchCounts();
-    }
-  }, [groups]);
+  const athleteCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    sessions.forEach(session => {
+        counts[session.id] = Object.keys(session.attendance).length;
+    });
+    return counts;
+  }, [sessions]);
 
 
   if (loading) {
@@ -199,7 +198,7 @@ export default function SessionsDashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredSessions.map(session => {
             const group = getGroupById(session.groupId);
-            const athleteCount = athleteCounts[session.groupId] || 0;
+            const athleteCount = athleteCounts[session.id] || 0;
             const isPast = new Date(session.date + 'T00:00:00').setHours(0,0,0,0) < new Date(new Date().setHours(0,0,0,0)).getTime();
 
             return (
@@ -207,7 +206,7 @@ export default function SessionsDashboardPage() {
                 <CardHeader>
                   <CardTitle>{group?.name}</CardTitle>
                   <CardDescription>
-                    אימון בתאריך {new Date(session.date + 'T00:00:00').toLocaleDateString('he-IL')}
+                    {new Date(session.date + 'T00:00:00').toLocaleDateString('he-IL')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between">

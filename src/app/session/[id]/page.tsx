@@ -22,7 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { getTrainingSessionById, getAbsenceReasons, getAthletesInGroup, getGroupById, updateAttendance } from "@/lib/data";
+import { getTrainingSessionById, getAbsenceReasons, getAthletes, getGroupById, updateAttendance } from "@/lib/data";
 import type { AttendanceRecord, Athlete, TrainingSession, Group, AbsenceReason } from '@/types';
 import { Star, Save, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -50,7 +50,7 @@ export default function AttendancePage() {
 
   const [session, setSession] = useState<TrainingSession | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const [athletesInGroup, setAthletesInGroup] = useState<Athlete[]>([]);
+  const [athletesInSession, setAthletesInSession] = useState<Athlete[]>([]);
   const [absenceReasons, setAbsenceReasons] = useState<AbsenceReason[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,14 +71,18 @@ export default function AttendancePage() {
         setSession(sessionData);
         setAttendance(JSON.parse(JSON.stringify(sessionData.attendance || {})));
 
+        const athleteIds = Object.keys(sessionData.attendance || {});
+
         const [groupData, athletesData, reasonsData] = await Promise.all([
             getGroupById(sessionData.groupId),
-            getAthletesInGroup(sessionData.groupId),
+            athleteIds.length > 0 ? getAthletes(athleteIds) : Promise.resolve([]),
             getAbsenceReasons(),
         ]);
 
         setSelectedGroup(groupData);
-        setAthletesInGroup(athletesData);
+        // sort athletes by first name
+        athletesData.sort((a, b) => a.firstName.localeCompare(b.firstName));
+        setAthletesInSession(athletesData);
         setAbsenceReasons(reasonsData);
         setLoading(false);
     }
@@ -157,77 +161,86 @@ export default function AttendancePage() {
         </CardHeader>
       </Card>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pb-24">
-        {athletesInGroup.map((athlete: Athlete) => {
-          const record = getAthleteAttendance(athlete.id);
-          const isPresent = record.present !== false;
+      {athletesInSession.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pb-24">
+          {athletesInSession.map((athlete: Athlete) => {
+            const record = getAthleteAttendance(athlete.id);
+            const isPresent = record.present !== false;
 
-          return (
-            <Card key={athlete.id}>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                   <CardTitle className="text-lg">{`${athlete.firstName} ${athlete.lastName}`}</CardTitle>
-                   <div className="flex items-center space-x-2 space-x-reverse">
-                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
-                       <Switch
-                        id={`attendance-${athlete.id}`}
-                        checked={isPresent}
-                        onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', checked)}
-                        dir="ltr"
-                        disabled={isPastSession}
-                       />
-                       <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
-                    </div>
-                </div>
-              </CardHeader>
-              <Separator />
-              <CardContent className="pt-6 space-y-4">
-                {isPresent ? (
-                    <>
-                     <div className="flex justify-between items-center">
-                       <Label>דירוג אימון</Label>
-                       <StarRating
-                          rating={record.rating || 0}
-                          setRating={(rating) => handleAttendanceChange(athlete.id, 'rating', rating)}
-                          isReadOnly={isPastSession}
-                        />
-                     </div>
-                     <div>
-                        <Textarea
-                            id={`comment-${athlete.id}`}
-                            placeholder={isPastSession ? 'אין הערה' : 'הוסף הערה...'}
-                            value={record.comment || ""}
-                            onChange={(e) => handleAttendanceChange(athlete.id, 'comment', e.target.value)}
-                            className="mt-1 min-h-[60px]"
-                            readOnly={isPastSession}
-                        />
-                     </div>
-                    </>
-                ) : (
-                    <div>
-                        <Label htmlFor={`absence-${athlete.id}`}>סיבת היעדרות</Label>
-                         <Select
-                          onValueChange={(value) => handleAttendanceChange(athlete.id, 'absenceReason', value)}
-                          value={record.absenceReason || ""}
+            return (
+              <Card key={athlete.id}>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg">{`${athlete.firstName} ${athlete.lastName}`}</CardTitle>
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
+                        <Switch
+                          id={`attendance-${athlete.id}`}
+                          checked={isPresent}
+                          onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', checked)}
+                          dir="ltr"
                           disabled={isPastSession}
-                          dir="rtl"
-                        >
-                          <SelectTrigger id={`absence-${athlete.id}`} className="mt-1">
-                            <SelectValue placeholder={isPastSession ? 'לא נבחרה סיבה' : 'בחר סיבה'} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {absenceReasons.map(reason => (
-                              <SelectItem key={reason.id} value={reason.id}>{reason.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                    </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                        />
+                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
+                      </div>
+                  </div>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-6 space-y-4">
+                  {isPresent ? (
+                      <>
+                      <div className="flex justify-between items-center">
+                        <Label>דירוג אימון</Label>
+                        <StarRating
+                            rating={record.rating || 0}
+                            setRating={(rating) => handleAttendanceChange(athlete.id, 'rating', rating)}
+                            isReadOnly={isPastSession}
+                          />
+                      </div>
+                      <div>
+                          <Textarea
+                              id={`comment-${athlete.id}`}
+                              placeholder={isPastSession ? 'אין הערה' : 'הוסף הערה...'}
+                              value={record.comment || ""}
+                              onChange={(e) => handleAttendanceChange(athlete.id, 'comment', e.target.value)}
+                              className="mt-1 min-h-[60px]"
+                              readOnly={isPastSession}
+                          />
+                      </div>
+                      </>
+                  ) : (
+                      <div>
+                          <Label htmlFor={`absence-${athlete.id}`}>סיבת היעדרות</Label>
+                          <Select
+                            onValueChange={(value) => handleAttendanceChange(athlete.id, 'absenceReason', value)}
+                            value={record.absenceReason || ""}
+                            disabled={isPastSession}
+                            dir="rtl"
+                          >
+                            <SelectTrigger id={`absence-${athlete.id}`} className="mt-1">
+                              <SelectValue placeholder={isPastSession ? 'לא נבחרה סיבה' : 'בחר סיבה'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {absenceReasons.map(reason => (
+                                <SelectItem key={reason.id} value={reason.id}>{reason.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                      </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card>
+            <CardContent className="pt-6">
+                <p className="text-center text-muted-foreground">לא נמצאו ספורטאים המשויכים לאימון זה.</p>
+            </CardContent>
+        </Card>
+      )}
+
 
       <CardFooter className="flex justify-end sticky bottom-0 bg-background py-4 px-6 border-t gap-2">
         {!isPastSession && (
