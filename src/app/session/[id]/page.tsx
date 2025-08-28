@@ -22,7 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { getTrainingSessionById, getAbsenceReasons, getAthletes, getGroupById } from "@/lib/data";
+import { getTrainingSessionById, getAbsenceReasons, getAthletes, getGroupById, updateAttendance } from "@/lib/data";
 import type { AttendanceRecord, Athlete, TrainingSession, Group, AbsenceReason } from '@/types';
 import { Star, Save, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
