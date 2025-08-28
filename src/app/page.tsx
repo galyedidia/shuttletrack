@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/dialog"
 import { getGroups, getTrainingSessions, addTrainingSession, getAthletesInGroup } from "@/lib/data";
 import type { TrainingSession, Group, Athlete } from '@/types';
-import { PlusCircle, Calendar as CalendarIcon, Users, Edit } from "lucide-react";
+import { PlusCircle, Calendar as CalendarIcon, Users, Edit, Eye } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -200,6 +200,7 @@ export default function SessionsDashboardPage() {
           {filteredSessions.map(session => {
             const group = getGroupById(session.groupId);
             const athleteCount = athleteCounts[session.groupId] || 0;
+            const isPast = new Date(session.date + 'T00:00:00').setHours(0,0,0,0) < new Date(new Date().setHours(0,0,0,0)).getTime();
 
             return (
               <Card key={session.id}>
@@ -209,18 +210,16 @@ export default function SessionsDashboardPage() {
                     אימון בתאריך {new Date(session.date + 'T00:00:00').toLocaleDateString('he-IL')}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex items-center justify-between">
                   <div className="flex items-center text-muted-foreground">
                     <Users className="me-2 h-4 w-4" />
                     <span>{athleteCount} ספורטאים</span>
                   </div>
-                </CardContent>
-                <CardFooter>
-                  <Button className="w-full" onClick={() => router.push(`/session/${session.id}`)}>
-                    <Edit className="me-2 h-4 w-4" />
-                    {new Date(session.date + 'T00:00:00').setHours(0,0,0,0) >= new Date(new Date().setHours(0,0,0,0)).getTime() ? 'ערוך אימון' : 'הצג אימון'}
+                  <Button size="sm" onClick={() => router.push(`/session/${session.id}`)}>
+                    {isPast ? <Eye className="me-2 h-4 w-4" /> : <Edit className="me-2 h-4 w-4" />}
+                    {isPast ? 'הצג' : 'ערוך'}
                   </Button>
-                </CardFooter>
+                </CardContent>
               </Card>
             );
           })}
