@@ -535,9 +535,6 @@ export default function SettingsPage() {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>{groupToEdit ? 'עריכת שם קבוצה' : 'יצירת קבוצה חדשה'}</DialogTitle>
-                            <DialogDescription>
-                            {groupToEdit ? 'שנה את שם הקבוצה ולחץ על שמור.' : 'הזן את שם הקבוצה החדשה ולחץ על יצירה.'}
-                            </DialogDescription>
                         </DialogHeader>
                         <div className="py-4">
                             <Label htmlFor="group-name">שם הקבוצה</Label>
@@ -553,7 +550,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             {groups.length > 0 ? (
-                <Accordion type="single" collapsible className="w-full" value={openAccordion || undefined} onValueChange={setOpenAccordion}>
+                <Accordion type="single" collapsible className="w-full">
                 {groups.map(group => (
                     <AccordionItem value={group.id} key={group.id}>
                       <div className="flex items-center w-full">
@@ -667,10 +664,9 @@ export default function SettingsPage() {
              <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>שם פרטי</TableHead>
-                        <TableHead>שם משפחה</TableHead>
-                        <TableHead>טלפון</TableHead>
-                         <TableHead className="text-left">פעולות</TableHead>
+                        <TableHead className="text-right">שם פרטי</TableHead>
+                        <TableHead className="text-right">שם משפחה</TableHead>
+                        <TableHead className="text-right">פעולות</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -678,8 +674,7 @@ export default function SettingsPage() {
                         <TableRow key={coach.id}>
                             <TableCell>{coach.firstName}</TableCell>
                             <TableCell>{coach.lastName}</TableCell>
-                            <TableCell>{coach.phone}</TableCell>
-                            <TableCell className="text-left">
+                            <TableCell className="text-right">
                                 <Button variant="ghost" size="icon" onClick={() => handleOpenCoachDialog(coach)}><Edit className="h-4 w-4" /></Button>
                                  <AlertDialog onOpenChange={(isOpen) => !isOpen && setCoachToDelete(null)}>
                                     <AlertDialogTrigger asChild>
@@ -861,4 +856,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
