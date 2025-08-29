@@ -228,7 +228,7 @@ export default function SettingsPage() {
   const [newReasonLabel, setNewReasonLabel] = useState("");
   const [newReasonInput, setNewReasonInput] = useState("");
 
-  const fetchAllData = useCallback(async (shouldSetAccordion = false) => {
+  const fetchAllData = useCallback(async () => {
     try {
         setLoading(true);
         const [groupsData, coachesData, reasonsData] = await Promise.all([
@@ -252,10 +252,6 @@ export default function SettingsPage() {
         }
         setAthletesByGroup(athletesData);
         
-        if (shouldSetAccordion && groupsData.length > 0 && !openAccordion) {
-            setOpenAccordion(groupsData[0].id);
-        }
-
     } catch (error) {
         console.error("Failed to fetch settings data:", error);
         toast({
@@ -266,11 +262,10 @@ export default function SettingsPage() {
     } finally {
         setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast]);
   
   useEffect(() => {
-    fetchAllData(true);
+    fetchAllData();
   }, [fetchAllData]);
   
   // Group Management Handlers
@@ -532,11 +527,10 @@ export default function SettingsPage() {
             <div className="flex justify-between items-center">
                 <div>
                     <CardTitle>ניהול קבוצות וספורטאים</CardTitle>
-                    <CardDescription>הוסף, ערוך ומחק קבוצות וספורטאים.</CardDescription>
                 </div>
                  <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button onClick={() => handleOpenGroupDialog()}><PlusCircle className="me-2 h-4 w-4" />הוסף קבוצה חדשה</Button>
+                        <Button onClick={() => handleOpenGroupDialog()}><PlusCircle className="me-2 h-4 w-4" />הוסף קבוצה</Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
@@ -602,10 +596,9 @@ export default function SettingsPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>שם פרטי</TableHead>
-                                        <TableHead>שם משפחה</TableHead>
-                                        <TableHead>טלפון</TableHead>
-                                        <TableHead className="text-left">פעולות</TableHead>
+                                        <TableHead className="text-right">שם פרטי</TableHead>
+                                        <TableHead className="text-right">שם משפחה</TableHead>
+                                        <TableHead className="text-right">פעולות</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -613,8 +606,7 @@ export default function SettingsPage() {
                                     <TableRow key={athlete.id}>
                                         <TableCell>{athlete.firstName}</TableCell>
                                         <TableCell>{athlete.lastName}</TableCell>
-                                        <TableCell>{athlete.phone}</TableCell>
-                                        <TableCell className="text-left">
+                                        <TableCell className="text-right">
                                             <Button variant="ghost" size="icon" onClick={() => handleOpenAthleteDialog(athlete, group.id)}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
@@ -869,3 +861,4 @@ export default function SettingsPage() {
     </>
   );
 }
+
