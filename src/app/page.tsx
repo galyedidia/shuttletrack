@@ -265,7 +265,7 @@ function SessionsDashboard() {
             const canDelete = isToday;
 
             return (
-              <Card key={session.id} className="border-l-4 border-primary">
+              <Card key={session.id} className="border-l-4 border-primary bg-gradient-to-br from-card to-background">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
@@ -367,3 +367,5 @@ export default function SessionsDashboardPage() {
         </Suspense>
     )
 }
+
+    
