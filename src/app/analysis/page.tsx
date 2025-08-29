@@ -98,7 +98,7 @@ export default function AnalysisPage() {
           <CardDescription>בחר ספורטאי כדי לנתח את הערות המאמן לגביו.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Select onValueChange={setSelectedAthleteId} disabled={loadingAthletes}>
+          <Select onValueChange={setSelectedAthleteId} disabled={loadingAthletes} dir="rtl">
             <SelectTrigger>
               <SelectValue placeholder={loadingAthletes ? "טוען ספורטאים..." : "בחר ספורטאי..."} />
             </SelectTrigger>
@@ -115,7 +115,7 @@ export default function AnalysisPage() {
         </CardContent>
         {selectedAthleteId && (
             <CardFooter className="flex flex-col items-start gap-2">
-                 <h3 className="font-semibold mt-4">הערות אחרונות</h3>
+                 <h3 className="font-semibold mt-4 w-full text-right">הערות אחרונות</h3>
                  <Separator/>
                 <ScrollArea className="h-48 w-full">
                     { isLoadingComments ? (
@@ -123,7 +123,7 @@ export default function AnalysisPage() {
                     ) : (
                     <div className="space-y-4 p-2">
                     {(comments.length > 0 ? comments : [{date: '', comment: 'אין הערות זמינות לספורטאי זה'}]).map((c, i) => (
-                        <div key={i}>
+                        <div key={i} className="text-right">
                             <p className="text-sm font-medium">{c.comment}</p>
                             <p className="text-xs text-muted-foreground">{new Date(c.date + 'T00:00:00').toLocaleDateString('he-IL')}</p>
                         </div>
