@@ -330,13 +330,13 @@ function SessionsDashboard() {
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle className="text-right">יצירת אימון חדש</DialogTitle>
-                    <DialogDescription className="text-right">
+                    <DialogTitle className="text-center">יצירת אימון חדש</DialogTitle>
+                    <DialogDescription className="text-center">
                         בחר קבוצה כדי ליצור אימון חדש להיום.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
-                    <Select onValueChange={setNewSessionGroupId} value={newSessionGroupId}>
+                    <Select onValueChange={setNewSessionGroupId} value={newSessionGroupId} dir="rtl">
                         <SelectTrigger>
                             <SelectValue placeholder="בחר קבוצה..." />
                         </SelectTrigger>
