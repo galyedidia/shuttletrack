@@ -59,7 +59,6 @@ interface ReportData {
     attendedSessions: number;
     totalSessions: number;
     averageRating: number;
-    absences: number;
 }
 
 interface AthleteSessionDetail {
@@ -127,22 +126,24 @@ export default function ReportsPage() {
         }
 
         // Aggregate all unique athlete IDs from all sessions in the month
-        const athleteStats: Record<string, { attended: number; totalRating: number; ratedCount: number }> = {};
+        const athleteStats: Record<string, { attended: number; totalRating: number; ratedCount: number; absences: number; }> = {};
         const athleteIdsInReport = new Set<string>();
 
         sessions.forEach(session => {
-            Object.keys(session.attendance).forEach(athleteId => {
+            Object.values(session.attendance).forEach(record => {
+                const athleteId = record.athleteId;
                 athleteIdsInReport.add(athleteId);
                 if (!athleteStats[athleteId]) {
-                    athleteStats[athleteId] = { attended: 0, totalRating: 0, ratedCount: 0 };
+                    athleteStats[athleteId] = { attended: 0, totalRating: 0, ratedCount: 0, absences: 0 };
                 }
-                const record = session.attendance[athleteId];
                 if (record?.present) {
                     athleteStats[athleteId].attended++;
                     if (record.rating && record.rating > 0) {
                         athleteStats[athleteId].totalRating += record.rating;
                         athleteStats[athleteId].ratedCount++;
                     }
+                } else {
+                    athleteStats[athleteId].absences++;
                 }
             });
         });
@@ -163,7 +164,6 @@ export default function ReportsPage() {
             
             const attendancePercentage = totalSessions > 0 ? Math.round((stats.attended / totalSessions) * 100) : 0;
             const averageRating = stats.ratedCount > 0 ? parseFloat((stats.totalRating / stats.ratedCount).toFixed(1)) : 0;
-            const absences = totalSessions - stats.attended;
 
             return {
                 athleteId,
@@ -173,7 +173,6 @@ export default function ReportsPage() {
                 attendedSessions: stats.attended,
                 totalSessions,
                 averageRating,
-                absences
             };
         });
         
@@ -294,7 +293,7 @@ export default function ReportsPage() {
             <Table>
             <TableHeader>
                 <TableRow>
-                <TableHead>שם הספורטאי</TableHead>
+                <TableHead className="text-center">שם הספורטאי</TableHead>
                 <TableHead className="text-center">אחוז נוכחות</TableHead>
                 <TableHead className="text-center">דירוג ממוצע</TableHead>
                 </TableRow>
@@ -302,7 +301,7 @@ export default function ReportsPage() {
             <TableBody>
                 {reportData.map((row) => (
                 <TableRow key={row.athleteId} onClick={() => handleAthleteClick(row)} className="cursor-pointer">
-                    <TableCell className="font-medium">{`${row.firstName} ${row.lastName}`}</TableCell>
+                    <TableCell className="font-medium text-right">{`${row.firstName} ${row.lastName}`}</TableCell>
                     <TableCell className="text-center">
                          <Badge variant={getAttendanceBadgeVariant(row.attendancePercentage)}>
                             {`${row.attendancePercentage}% (${row.attendedSessions}/${row.totalSessions})`}
@@ -369,7 +368,3 @@ export default function ReportsPage() {
     </>
   );
 }
-
-    
-
-    
