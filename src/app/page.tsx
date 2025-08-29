@@ -329,11 +329,11 @@ function SessionsDashboard() {
                 </Button>
             </DialogTrigger>
             <DialogContent>
-                <DialogHeader className="text-right">
-                <DialogTitle>יצירת אימון חדש</DialogTitle>
-                <DialogDescription>
-                    בחר קבוצה כדי ליצור אימון חדש להיום.
-                </DialogDescription>
+                <DialogHeader>
+                    <DialogTitle className="text-right">יצירת אימון חדש</DialogTitle>
+                    <DialogDescription className="text-right">
+                        בחר קבוצה כדי ליצור אימון חדש להיום.
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                     <Select onValueChange={setNewSessionGroupId} value={newSessionGroupId}>
