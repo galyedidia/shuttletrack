@@ -208,7 +208,7 @@ function AttendancePageContent() {
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-lg">{`${athlete.firstName} ${athlete.lastName}`}</CardTitle>
                     <div className="flex items-center space-x-2 space-x-reverse">
-                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
+                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
                         <Switch
                           id={`attendance-${athlete.id}`}
                           checked={isPresent}
@@ -216,7 +216,7 @@ function AttendancePageContent() {
                           dir="ltr"
                           disabled={isPastSession}
                         />
-                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
+                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
                       </div>
                   </div>
                 </CardHeader>

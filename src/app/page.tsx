@@ -262,6 +262,7 @@ function SessionsDashboard() {
             const athleteCount = athleteCounts[session.id] || 0;
             const isPast = new Date(session.date + 'T00:00:00').setHours(0,0,0,0) < new Date(new Date().setHours(0,0,0,0)).getTime();
             const creationTime = formatCreationTime(session.createdAt);
+            const canDelete = isToday;
 
             return (
               <Card key={session.id}>
@@ -274,25 +275,27 @@ function SessionsDashboard() {
                             {creationTime && <span className="ms-2 font-mono text-xs">({creationTime})</span>}
                         </CardDescription>
                     </div>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                          <AlertDialogHeader>
-                          <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                              פעולה זו תמחק את האימון של קבוצת {group?.name} מתאריך זה לצמיתות. לא ניתן לבטל פעולה זו.
-                          </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                          <AlertDialogCancel>ביטול</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteSession(session.id)}>מחק</AlertDialogAction>
-                          </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    {canDelete && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                              <AlertDialogHeader>
+                              <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                  פעולה זו תמחק את האימון של קבוצת {group?.name} מתאריך זה לצמיתות. לא ניתן לבטל פעולה זו.
+                              </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                              <AlertDialogCancel>ביטול</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteSession(session.id)}>מחק</AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between">
