@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -356,12 +355,12 @@ export default function ReportsPage() {
                     </Table>
                  </ScrollArea>
             </div>
-            <DialogFooter>
-                 <Button variant="outline" onClick={() => setIsDetailOpen(false)}>סגור</Button>
-                 <Button onClick={handleExport}>
+            <DialogFooter className="flex-col gap-2 pt-4">
+                 <Button onClick={handleExport} className="w-full">
                     <FileDown className="me-2 h-4 w-4" />
                     ייצא לאקסל
                 </Button>
+                 <Button variant="link" onClick={() => setIsDetailOpen(false)}>סגור</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
