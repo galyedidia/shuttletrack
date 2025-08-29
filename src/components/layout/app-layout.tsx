@@ -151,7 +151,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-4 sm:px-6">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
-            <span className="font-semibold">{coachName}</span>
           </div>
           <div className="absolute left-1/2 -translate-x-1/2">
              <Link href="/">
@@ -160,7 +159,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
            <div className="flex items-center gap-4">
-             {/* Future right-side items can go here */}
+             <span className="font-semibold">{coachName?.split(' ')[0]}</span>
            </div>
         </header>
         <main className="flex-1 p-4 sm:p-6">{children}</main>

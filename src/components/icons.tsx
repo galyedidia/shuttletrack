@@ -3,7 +3,7 @@ import Image from 'next/image';
 
 export const AppLogo = (props: React.SVGProps<SVGSVGElement>) => (
   <Image
-    src="/app-logo.svg"
+    src="/app-logo.png"
     alt="ShuttleTrack Logo"
     width={40}
     height={40}
