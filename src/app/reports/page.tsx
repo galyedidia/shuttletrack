@@ -237,10 +237,6 @@ export default function ReportsPage() {
     document.body.removeChild(link);
   };
   
-  const selectedGroupName = useMemo(() => {
-    return groups.find(g => g.id === selectedGroup)?.name || '...';
-  }, [groups, selectedGroup]);
-  
   const getAttendanceBadgeVariant = (percentage: number) => {
     if (percentage > 85) return 'default';
     if (percentage < 70) return 'destructive';
@@ -254,34 +250,30 @@ export default function ReportsPage() {
   return (
     <>
     <Card>
-      <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <CardTitle>דוחות חודשיים</CardTitle>
-                <CardDescription>הפק וייצא דוחות נוכחות חודשיים עבור כל קבוצה.</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-                <Select value={String(selectedMonth)} onValueChange={(val) => setSelectedMonth(Number(val))}>
-                <SelectTrigger className="w-[120px]">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    {months.map(month => (
-                    <SelectItem key={month.value} value={String(month.value)}>{month.label}</SelectItem>
-                    ))}
-                </SelectContent>
+      <CardHeader className="text-center">
+            <CardTitle className="mb-4">דוחות חודשיים</CardTitle>
+            <div className="flex items-center justify-center gap-2">
+                <Select dir="rtl" value={String(selectedMonth)} onValueChange={(val) => setSelectedMonth(Number(val))}>
+                    <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {months.map(month => (
+                        <SelectItem key={month.value} value={String(month.value)}>{month.label}</SelectItem>
+                        ))}
+                    </SelectContent>
                 </Select>
-                <Select value={String(selectedYear)} onValueChange={(val) => setSelectedYear(Number(val))}>
-                <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    {years.map(year => (
-                    <SelectItem key={year} value={String(year)}>{year}</SelectItem>
-                    ))}
-                </SelectContent>
+                <Select dir="rtl" value={String(selectedYear)} onValueChange={(val) => setSelectedYear(Number(val))}>
+                    <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {years.map(year => (
+                        <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                        ))}
+                    </SelectContent>
                 </Select>
-                 <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                 <Select dir="rtl" value={selectedGroup} onValueChange={setSelectedGroup}>
                     <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="בחר קבוצה" />
                     </SelectTrigger>
@@ -292,10 +284,8 @@ export default function ReportsPage() {
                     </SelectContent>
                 </Select>
             </div>
-        </div>
       </CardHeader>
       <CardContent>
-        <h3 className="font-semibold mb-4">תצוגה מקדימה: {selectedGroupName}</h3>
          {loadingReport ? (
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -307,7 +297,6 @@ export default function ReportsPage() {
                 <TableHead>שם הספורטאי</TableHead>
                 <TableHead className="text-center">אחוז נוכחות</TableHead>
                 <TableHead className="text-center">דירוג ממוצע</TableHead>
-                <TableHead className="text-center">מספר היעדרויות</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -320,7 +309,6 @@ export default function ReportsPage() {
                         </Badge>
                     </TableCell>
                     <TableCell className="text-center">{row.averageRating > 0 ? row.averageRating : 'אין'}</TableCell>
-                    <TableCell className="text-center">{row.absences}</TableCell>
                 </TableRow>
                 ))}
             </TableBody>
@@ -381,5 +369,7 @@ export default function ReportsPage() {
     </>
   );
 }
+
+    
 
     
