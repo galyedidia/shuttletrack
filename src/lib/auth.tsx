@@ -32,25 +32,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (user && user.phoneNumber) {
         setUser(user);
         
-        const [coach, systemHasManager] = await Promise.all([
-          getCoachByPhone(user.phoneNumber),
-          hasManagerAccount()
-        ]);
-        
-        if (coach) {
-          setCoachName(`${coach.firstName} ${coach.lastName}`);
-          // If no manager exists in the system, elevate the current user to manager.
-          // This is a one-time bootstrap for the first user.
-          if (!systemHasManager) {
+        const systemHasManager = await hasManagerAccount();
+
+        if (!systemHasManager) {
+            // BOOTSTRAP: If no manager exists in the system, this user becomes the temporary manager
+            // to allow them to create the first manager account (themselves).
             setRole('manager');
-          } else {
-            setRole(coach.role);
-          }
+            const coach = await getCoachByPhone(user.phoneNumber);
+            setCoachName(coach ? `${coach.firstName} ${coach.lastName}` : "מנהל מערכת");
         } else {
-          setCoachName("מאמן");
-          // If the user is authenticated but has no DB record, they can't be a manager.
-          setRole('coach');
+            // Normal operation: fetch the user's record and role from the DB.
+            const coach = await getCoachByPhone(user.phoneNumber);
+            if (coach) {
+                setCoachName(`${coach.firstName} ${coach.lastName}`);
+                setRole(coach.role);
+            } else {
+                // This case handles a user who is authenticated with Firebase
+                // but doesn't have a record in the 'coaches' collection.
+                // They are treated as a non-privileged user.
+                setCoachName("משתמש לא רשום");
+                setRole(null); // Or 'guest', effectively blocking access to everything.
+            }
         }
+
       } else {
         setUser(null);
         setCoachName(null);
@@ -66,7 +70,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!loading && !user && pathname !== '/login') {
       router.push('/login');
     }
-  }, [user, loading, pathname, router]);
+     // If a logged-in user without a role tries to access anything, send them to login.
+     // This handles the case of a user deleted from the DB but still has a valid Firebase session.
+    if (!loading && user && !role && pathname !== '/login') {
+      router.push('/login');
+    }
+  }, [user, loading, pathname, router, role]);
   
   const signOut = async () => {
     await firebaseSignOut(auth);
@@ -89,5 +98,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
