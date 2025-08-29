@@ -4,6 +4,44 @@
 
 @layer base {
   :root {
+    --background: 224 10% 10%;
+    --foreground: 210 20% 98%;
+
+    --card: 224 10% 10%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 224 10% 10%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 173 75% 48%;
+    --primary-foreground: 173 20% 98%;
+
+    --secondary: 224 8% 15%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 224 8% 15%;
+    --muted-foreground: 210 15% 65%;
+
+    --accent: 224 8% 15%;
+    --accent-foreground: 210 20% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 224 8% 20%;
+    --input: 224 8% 15%;
+    --ring: 173 75% 48%;
+    
+    --radius: 0.5rem;
+    
+    --chart-1: 173 75% 48%;
+    --chart-2: 205 70% 50%;
+    --chart-3: 40 90% 58%;
+    --chart-4: 280 85% 65%;
+    --chart-5: 200 85% 60%;
+  }
+
+  .light {
     --background: 210 20% 98%; /* Very Light Cool Gray */
     --foreground: 224 10% 10%; /* Dark Slate Gray */
 
@@ -31,50 +69,12 @@
     --border: 210 10% 88%;
     --input: 210 10% 88%;
     --ring: 173 80% 40%;
-
-    --radius: 0.5rem;
     
     --chart-1: 173 80% 40%;
     --chart-2: 205 70% 45%;
     --chart-3: 35 92% 55%;
     --chart-4: 280 80% 60%;
     --chart-5: 200 80% 55%;
-  }
-
-  .dark {
-    --background: 224 10% 10%;
-    --foreground: 210 20% 98%;
-
-    --card: 224 10% 10%;
-    --card-foreground: 210 20% 98%;
-
-    --popover: 224 10% 10%;
-    --popover-foreground: 210 20% 98%;
-
-    --primary: 173 75% 48%;
-    --primary-foreground: 173 20% 98%;
-
-    --secondary: 224 8% 15%;
-    --secondary-foreground: 210 20% 98%;
-
-    --muted: 224 8% 15%;
-    --muted-foreground: 210 15% 65%;
-
-    --accent: 224 8% 15%;
-    --accent-foreground: 210 20% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 224 8% 15%;
-    --input: 224 8% 15%;
-    --ring: 173 75% 48%;
-    
-    --chart-1: 173 75% 48%;
-    --chart-2: 205 70% 50%;
-    --chart-3: 40 90% 58%;
-    --chart-4: 280 85% 65%;
-    --chart-5: 200 85% 60%;
   }
 }
 
@@ -84,6 +84,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image: linear-gradient(to bottom, hsl(var(--background)), hsl(224 10% 12%));
     font-family: var(--font-body);
   }
   .day-with-session {
