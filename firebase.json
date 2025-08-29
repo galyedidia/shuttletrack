@@ -1,7 +1,20 @@
 
 {
-  "apphosting": {
+  "hosting": {
     "source": ".",
-    "yaml": "apphosting.yaml"
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "apphosting": {
+          "backendId": "shuttletrack-rgjhw-b406e",
+          "region": "us-central1"
+        }
+      }
+    ]
   }
 }
