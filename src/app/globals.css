@@ -4,10 +4,10 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%; /* Very Light Cool Gray */
-    --foreground: 224 10% 10%; /* Dark Slate Gray */
+    --background: 210 20% 98%;
+    --foreground: 224 10% 10%;
 
-    --card: 0 0% 100%;
+    --card: 173 60% 97%; /* Very light teal for card background */
     --card-foreground: 224 10% 10%;
 
     --popover: 0 0% 100%;
@@ -45,7 +45,7 @@
     --background: 224 10% 10%;
     --foreground: 210 20% 98%;
 
-    --card: 224 10% 10%;
+    --card: 224 10% 12%; /* Darker card for dark mode */
     --card-foreground: 210 20% 98%;
 
     --popover: 224 10% 10%;

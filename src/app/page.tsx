@@ -265,7 +265,7 @@ function SessionsDashboard() {
             const canDelete = isToday;
 
             return (
-              <Card key={session.id}>
+              <Card key={session.id} className="border-l-4 border-primary">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
@@ -284,8 +284,8 @@ function SessionsDashboard() {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                               <AlertDialogHeader>
-                              <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
-                              <AlertDialogDescription>
+                              <AlertDialogTitle className="text-right">האם אתה בטוח?</AlertDialogTitle>
+                              <AlertDialogDescription className="text-right">
                                   פעולה זו תמחק את האימון של קבוצת {group?.name} מתאריך זה לצמיתות. לא ניתן לבטל פעולה זו.
                               </AlertDialogDescription>
                               </AlertDialogHeader>
@@ -303,7 +303,7 @@ function SessionsDashboard() {
                     <Users className="me-2 h-4 w-4" />
                     <span>{athleteCount} ספורטאים</span>
                   </div>
-                  <Button size="sm" onClick={() => handleSessionNavigation(session.id)}>
+                  <Button size="sm" variant="secondary" onClick={() => handleSessionNavigation(session.id)}>
                     {isPast ? <Eye className="me-2 h-4 w-4" /> : <Edit className="me-2 h-4 w-4" />}
                     {isPast ? 'הצג' : 'ערוך'}
                   </Button>
