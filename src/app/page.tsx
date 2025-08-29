@@ -329,7 +329,7 @@ function SessionsDashboard() {
                 </Button>
             </DialogTrigger>
             <DialogContent>
-                <DialogHeader>
+                <DialogHeader className="text-right">
                 <DialogTitle>יצירת אימון חדש</DialogTitle>
                 <DialogDescription>
                     בחר קבוצה כדי ליצור אימון חדש להיום.
