@@ -121,8 +121,8 @@ export default function SettingsPage() {
         setLoading(true);
         const [groupsData, coachesData, reasonsData] = await Promise.all([
             getGroups(),
-            getCoaches(),
-            getAbsenceReasons(),
+            isManager ? getCoaches() : Promise.resolve([]),
+            isManager ? getAbsenceReasons() : Promise.resolve([]),
         ]);
 
         setGroups(groupsData);
@@ -150,7 +150,7 @@ export default function SettingsPage() {
     } finally {
         setLoading(false);
     }
-  }, [toast]);
+  }, [toast, isManager]);
   
   useEffect(() => {
     fetchAllData();
@@ -403,11 +403,15 @@ export default function SettingsPage() {
 
   return (
     <>
-    <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
-      <TabsList className="grid w-full grid-cols-3">
+    <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="groups" dir="rtl">
+      <TabsList className={`grid w-full ${isManager ? 'grid-cols-3' : 'grid-cols-1'}`}>
         <TabsTrigger value="groups">קבוצות וספורטאים</TabsTrigger>
-        <TabsTrigger value="users">משתמשים</TabsTrigger>
-        <TabsTrigger value="reasons">סיבות היעדרות</TabsTrigger>
+        {isManager && (
+            <>
+                <TabsTrigger value="users">משתמשים</TabsTrigger>
+                <TabsTrigger value="reasons">סיבות היעדרות</TabsTrigger>
+            </>
+        )}
       </TabsList>
       
       <TabsContent value="groups">
@@ -545,140 +549,122 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </TabsContent>
-
-      <TabsContent value="users">
-        <Card>
-            {isManager ? (
-                <>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle>ניהול משתמשים</CardTitle>
-                            <CardDescription>הוסף ונהל מאמנים ומנהלים.</CardDescription>
+      
+      {isManager && (
+        <>
+            <TabsContent value="users">
+                <Card>
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle>ניהול משתמשים</CardTitle>
+                                <CardDescription>הוסף ונהל מאמנים ומנהלים.</CardDescription>
+                            </div>
+                            <Button onClick={() => handleOpenUserDialog()}><UserPlus className="me-2 h-4 w-4" />הוסף משתמש</Button>
                         </div>
-                        <Button onClick={() => handleOpenUserDialog()}><UserPlus className="me-2 h-4 w-4" />הוסף משתמש</Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="text-right">שם</TableHead>
-                                <TableHead className="text-right">תפקיד</TableHead>
-                                <TableHead className="text-right">פעולות</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {coaches.map(user => (
-                                <TableRow key={user.id}>
-                                    <TableCell>{user.firstName} {user.lastName}</TableCell>
-                                    <TableCell>{user.role === 'manager' ? 'מנהל' : 'מאמן'}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => handleOpenUserDialog(user)}><Edit className="h-4 w-4" /></Button>
-                                        <AlertDialog onOpenChange={(isOpen) => !isOpen && setUserToDelete(null)}>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user)}>
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    פעולה זו תמחק את המשתמש "{userToDelete?.firstName} {userToDelete?.lastName}" לצמיתות.
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>ביטול</AlertDialogCancel>
-                                                <AlertDialogAction onClick={handleDeleteUser}>מחק</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </TableCell>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="text-right">שם</TableHead>
+                                    <TableHead className="text-right">תפקיד</TableHead>
+                                    <TableHead className="text-right">פעולות</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-                </>
-            ) : (
-                <CardHeader>
-                    <CardTitle>ניהול משתמשים</CardTitle>
-                    <CardContent className="pt-6">
-                        <p className="text-center text-muted-foreground">אין לך הרשאה לצפות בתוכן זה.</p>
+                            </TableHeader>
+                            <TableBody>
+                                {coaches.map(user => (
+                                    <TableRow key={user.id}>
+                                        <TableCell>{user.firstName} {user.lastName}</TableCell>
+                                        <TableCell>{user.role === 'manager' ? 'מנהל' : 'מאמן'}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenUserDialog(user)}><Edit className="h-4 w-4" /></Button>
+                                            <AlertDialog onOpenChange={(isOpen) => !isOpen && setUserToDelete(null)}>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user)}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                    <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        פעולה זו תמחק את המשתמש "{userToDelete?.firstName} {userToDelete?.lastName}" לצמיתות.
+                                                    </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                    <AlertDialogCancel>ביטול</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={handleDeleteUser}>מחק</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </CardContent>
-                </CardHeader>
-            )}
-        </Card>
-      </TabsContent>
+                </Card>
+            </TabsContent>
 
-      <TabsContent value="reasons">
-        <Card>
-            {isManager ? (
-                <>
-                <CardHeader>
-                    <CardTitle>ניהול סיבות היעדרות</CardTitle>
-                    <CardDescription>הוסף או ערוך סיבות היעדרות מותאמות אישית.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex gap-2">
-                        <Input 
-                            placeholder="הוסף סיבה חדשה..."
-                            value={newReasonInput}
-                            onChange={(e) => setNewReasonInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddReason()}
-                        />
-                        <Button onClick={handleAddReason}><PlusCircle className="me-2 h-4 w-4" />הוסף</Button>
-                    </div>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>סיבה</TableHead>
-                                <TableHead className="text-left">פעולות</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {absenceReasons.map(reason => (
-                                <TableRow key={reason.id}>
-                                    <TableCell>{reason.label}</TableCell>
-                                    <TableCell className="text-left">
-                                        <Button variant="ghost" size="icon" onClick={() => handleOpenReasonDialog(reason)}><Edit className="h-4 w-4" /></Button>
-                                        <AlertDialog onOpenChange={(isOpen) => !isOpen && setReasonToDelete(null)}>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" onClick={() => setReasonToDelete(reason)}>
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    פעולה זו תמחק את הסיבה "{reasonToDelete?.label}" לצמיתות.
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>ביטול</AlertDialogCancel>
-                                                <AlertDialogAction onClick={handleDeleteReason}>מחק</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </TableCell>
+            <TabsContent value="reasons">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>ניהול סיבות היעדרות</CardTitle>
+                        <CardDescription>הוסף או ערוך סיבות היעדרות מותאמות אישית.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex gap-2">
+                            <Input 
+                                placeholder="הוסף סיבה חדשה..."
+                                value={newReasonInput}
+                                onChange={(e) => setNewReasonInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddReason()}
+                            />
+                            <Button onClick={handleAddReason}><PlusCircle className="me-2 h-4 w-4" />הוסף</Button>
+                        </div>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>סיבה</TableHead>
+                                    <TableHead className="text-left">פעולות</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-                </>
-            ) : (
-                 <CardHeader>
-                    <CardTitle>ניהול סיבות היעדרות</CardTitle>
-                    <CardContent className="pt-6">
-                        <p className="text-center text-muted-foreground">אין לך הרשאה לצפות בתוכן זה.</p>
+                            </TableHeader>
+                            <TableBody>
+                                {absenceReasons.map(reason => (
+                                    <TableRow key={reason.id}>
+                                        <TableCell>{reason.label}</TableCell>
+                                        <TableCell className="text-left">
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenReasonDialog(reason)}><Edit className="h-4 w-4" /></Button>
+                                            <AlertDialog onOpenChange={(isOpen) => !isOpen && setReasonToDelete(null)}>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" onClick={() => setReasonToDelete(reason)}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                    <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        פעולה זו תמחק את הסיבה "{reasonToDelete?.label}" לצמיתות.
+                                                    </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                    <AlertDialogCancel>ביטול</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={handleDeleteReason}>מחק</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </CardContent>
-                </CardHeader>
-            )}
-        </Card>
-      </TabsContent>
+                </Card>
+            </TabsContent>
+        </>
+      )}
 
     </Tabs>
     
@@ -784,5 +770,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    
