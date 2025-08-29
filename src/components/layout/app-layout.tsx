@@ -116,7 +116,7 @@ function UserProfile() {
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, coachName } = useAuth();
 
   if (!user && pathname !== '/login') {
       return null; // Or a loading spinner, handled by AuthProvider
@@ -131,10 +131,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar side="right" collapsible="offcanvas" className="border-l bg-background">
         <SidebarHeader>
-          <Button variant="ghost" className="h-10 w-full justify-start px-2">
-            <AppLogo className="h-7 w-7 text-primary" />
+          <Link href="/" className="flex items-center gap-2">
+            <AppLogo className="h-8 w-8 text-primary" />
             <span className="font-bold text-lg">ShuttleTrack</span>
-          </Button>
+          </Link>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
@@ -148,13 +148,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
-          <SidebarTrigger />
-          <div className="flex-1">
-            <h1 className="text-xl font-semibold">
-              {navItems.find((item) => item.href === pathname)?.label}
-            </h1>
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-4 sm:px-6">
+          <div className="flex items-center gap-4">
+            <SidebarTrigger />
+            <span className="font-semibold">{coachName}</span>
           </div>
+          <div className="absolute left-1/2 -translate-x-1/2">
+             <Link href="/">
+                <AppLogo className="h-8 w-8 text-primary" />
+                <span className="sr-only">Home</span>
+            </Link>
+          </div>
+           <div className="flex items-center gap-4">
+             {/* Future right-side items can go here */}
+           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6">{children}</main>
       </SidebarInset>
