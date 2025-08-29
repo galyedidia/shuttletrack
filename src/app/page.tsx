@@ -265,7 +265,7 @@ function SessionsDashboard() {
             const canDelete = isToday;
 
             return (
-              <Card key={session.id} className="border-l-4 border-primary bg-gradient-to-br from-card to-background">
+              <Card key={session.id} className="border-l-4 border-primary bg-card">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
@@ -303,7 +303,7 @@ function SessionsDashboard() {
                     <Users className="me-2 h-4 w-4" />
                     <span>{athleteCount} ספורטאים</span>
                   </div>
-                  <Button size="sm" variant="secondary" onClick={() => handleSessionNavigation(session.id)}>
+                  <Button size="sm" onClick={() => handleSessionNavigation(session.id)}>
                     {isPast ? <Eye className="me-2 h-4 w-4" /> : <Edit className="me-2 h-4 w-4" />}
                     {isPast ? 'הצג' : 'ערוך'}
                   </Button>
@@ -367,6 +367,8 @@ export default function SessionsDashboardPage() {
         </Suspense>
     )
 }
+
+    
 
     
 
