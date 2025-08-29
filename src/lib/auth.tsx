@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from './firebase';
 import { useRouter, usePathname } from 'next/navigation';
-import { getCoachByPhone } from './data';
+import { getCoachByPhone, hasManagerAccount } from './data';
 import type { Coach } from '@/types';
 
 interface AuthContextType {
@@ -30,14 +31,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && user.phoneNumber) {
         setUser(user);
-        // Fetch coach data from Firestore
-        const coach = await getCoachByPhone(user.phoneNumber);
+        
+        const [coach, systemHasManager] = await Promise.all([
+          getCoachByPhone(user.phoneNumber),
+          hasManagerAccount()
+        ]);
+        
         if (coach) {
           setCoachName(`${coach.firstName} ${coach.lastName}`);
-          setRole(coach.role);
+          // If no manager exists in the system, elevate the current user to manager.
+          // This is a one-time bootstrap for the first user.
+          if (!systemHasManager) {
+            setRole('manager');
+          } else {
+            setRole(coach.role);
+          }
         } else {
           setCoachName("מאמן");
-          setRole(null); // Or 'coach' as a default if non-manager users can exist without a db entry
+          // If the user is authenticated but has no DB record, they can't be a manager.
+          setRole('coach');
         }
       } else {
         setUser(null);
