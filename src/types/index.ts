@@ -17,6 +17,7 @@ export interface Coach {
   firstName: string;
   lastName: string;
   phone: string;
+  role: 'manager' | 'coach';
 }
 
 export interface AttendanceRecord {
@@ -40,3 +41,5 @@ export interface AbsenceReason {
   id: string;
   label: string;
 }
+
+    

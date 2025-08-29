@@ -64,10 +64,13 @@ import { getGroups, getCoaches, getAbsenceReasons, getAthletesInGroup, addGroup,
 import { UserPlus, PlusCircle, Trash2, Edit } from 'lucide-react';
 import type { Athlete, Group, Coach, AbsenceReason } from '@/types';
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from '@/lib/auth';
 
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const { role } = useAuth();
+  const isManager = role === 'manager';
   
   const [groups, setGroups] = useState<Group[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
@@ -96,13 +99,15 @@ export default function SettingsPage() {
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null); // For creating athlete in the correct group
   const [targetGroupId, setTargetGroupId] = useState(""); // For moving athlete
 
-  // State for coach management
-  const [isCoachDialogOpen, setIsCoachDialogOpen] = useState(false);
-  const [coachToEdit, setCoachToEdit] = useState<Coach | null>(null);
-  const [coachToDelete, setCoachToDelete] = useState<Coach | null>(null);
+  // State for user management
+  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<Coach | null>(null);
+  const [userToDelete, setUserToDelete] = useState<Coach | null>(null);
   const [newCoachFirstName, setNewCoachFirstName] = useState("");
   const [newCoachLastName, setNewCoachLastName] = useState("");
   const [newCoachPhone, setNewCoachPhone] = useState("");
+  const [newUserRole, setNewUserRole] = useState<'manager' | 'coach'>('coach');
+
 
   // State for absence reason management
   const [isReasonDialogOpen, setIsReasonDialogOpen] = useState(false);
@@ -265,24 +270,26 @@ export default function SettingsPage() {
       }
   }
 
-  // Coach Management Handlers
-  const handleOpenCoachDialog = (coach: Coach | null = null) => {
-    setCoachToEdit(coach);
-    setNewCoachFirstName(coach?.firstName || "");
-    setNewCoachLastName(coach?.lastName || "");
-    setNewCoachPhone(coach?.phone || "");
-    setIsCoachDialogOpen(true);
+  // User Management Handlers (Coach/Manager)
+  const handleOpenUserDialog = (user: Coach | null = null) => {
+    setUserToEdit(user);
+    setNewCoachFirstName(user?.firstName || "");
+    setNewCoachLastName(user?.lastName || "");
+    setNewCoachPhone(user?.phone || "");
+    setNewUserRole(user?.role || 'coach');
+    setIsUserDialogOpen(true);
   }
 
-  const handleCloseCoachDialog = () => {
-    setIsCoachDialogOpen(false);
-    setCoachToEdit(null);
+  const handleCloseUserDialog = () => {
+    setIsUserDialogOpen(false);
+    setUserToEdit(null);
     setNewCoachFirstName("");
     setNewCoachLastName("");
     setNewCoachPhone("");
+    setNewUserRole("coach");
   }
 
-  const handleSaveCoach = async () => {
+  const handleSaveUser = async () => {
     const israeliPhoneRegex = /^(05\d-?\d{7}|\+9725\d-?\d{7})$/;
     
     if (!newCoachFirstName.trim() || !newCoachLastName.trim() || !newCoachPhone.trim()) {
@@ -298,34 +305,34 @@ export default function SettingsPage() {
     }
     
     try {
-        if (coachToEdit) {
-            await updateCoach(coachToEdit.id, { firstName: newCoachFirstName, lastName: newCoachLastName, phone: formattedPhone });
-            toast({ title: "מאמן עודכן", description: `פרטי ${newCoachFirstName} ${newCoachLastName} עודכנו.`});
+        if (userToEdit) {
+            await updateCoach(userToEdit.id, { firstName: newCoachFirstName, lastName: newCoachLastName, phone: formattedPhone, role: newUserRole });
+            toast({ title: "משתמש עודכן", description: `פרטי ${newCoachFirstName} ${newCoachLastName} עודכנו.`});
         } else {
-            await addCoach(newCoachFirstName, newCoachLastName, formattedPhone);
-            toast({ title: "מאמן נוסף", description: `${newCoachFirstName} ${newCoachLastName} נוסף למערכת.`});
+            await addCoach(newCoachFirstName, newCoachLastName, formattedPhone, newUserRole);
+            toast({ title: "משתמש נוסף", description: `${newCoachFirstName} ${newCoachLastName} נוסף למערכת.`});
         }
         await fetchAllData();
-        handleCloseCoachDialog();
+        handleCloseUserDialog();
     } catch (error: any) {
         if (error.message.includes("already exists")) {
-            toast({ title: "מספר טלפון קיים", description: "קיים כבר מאמן עם מספר טלפון זה.", variant: "destructive"});
+            toast({ title: "מספר טלפון קיים", description: "קיים כבר משתמש עם מספר טלפון זה.", variant: "destructive"});
         } else {
-            toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת המאמן.", variant: "destructive"});
+            toast({ title: "שגיאה", description: "אירעה שגיאה בעת שמירת המשתמש.", variant: "destructive"});
         }
     }
   }
 
-  const handleDeleteCoach = async () => {
-    if (!coachToDelete) return;
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
     try {
-        await deleteCoach(coachToDelete.id);
-        toast({ title: "מאמן נמחק", description: `${coachToDelete.firstName} ${coachToDelete.lastName} נמחק מהמערכת.`});
+        await deleteCoach(userToDelete.id);
+        toast({ title: "משתמש נמחק", description: `${userToDelete.firstName} ${userToDelete.lastName} נמחק מהמערכת.`});
         await fetchAllData();
     } catch (error) {
-        toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת המאמן.", variant: "destructive"});
+        toast({ title: "שגיאה", description: "אירעה שגיאה במחיקת המשתמש.", variant: "destructive"});
     } finally {
-        setCoachToDelete(null);
+        setUserToDelete(null);
     }
   }
 
@@ -399,7 +406,7 @@ export default function SettingsPage() {
     <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="groups">קבוצות וספורטאים</TabsTrigger>
-        <TabsTrigger value="coaches">מאמנים</TabsTrigger>
+        <TabsTrigger value="users">משתמשים</TabsTrigger>
         <TabsTrigger value="reasons">סיבות היעדרות</TabsTrigger>
       </TabsList>
       
@@ -410,24 +417,26 @@ export default function SettingsPage() {
                 <div>
                     <CardTitle>ניהול קבוצות וספורטאים</CardTitle>
                 </div>
-                 <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button onClick={() => handleOpenGroupDialog()}><PlusCircle className="me-2 h-4 w-4" />הוסף קבוצה</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{groupToEdit ? 'עריכת שם קבוצה' : 'יצירת קבוצה חדשה'}</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <Label htmlFor="group-name">שם הקבוצה</Label>
-                            <Input id="group-name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="mt-2" placeholder="לדוגמה: בוגרים"/>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
-                            <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                {isManager && (
+                    <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button onClick={() => handleOpenGroupDialog()}><PlusCircle className="me-2 h-4 w-4" />הוסף קבוצה</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>{groupToEdit ? 'עריכת שם קבוצה' : 'יצירת קבוצה חדשה'}</DialogTitle>
+                            </DialogHeader>
+                            <div className="py-4">
+                                <Label htmlFor="group-name">שם הקבוצה</Label>
+                                <Input id="group-name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="mt-2" placeholder="לדוגמה: בוגרים"/>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={handleCloseGroupDialog}>ביטול</Button>
+                                <Button onClick={handleSaveGroup}>{groupToEdit ? 'שמור שינויים' : 'צור קבוצה'}</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                )}
             </div>
           </CardHeader>
           <CardContent>
@@ -439,45 +448,49 @@ export default function SettingsPage() {
                         <AccordionTrigger className="text-lg font-medium hover:no-underline flex-1">
                             <span className="flex-1 text-right me-4">{group.name}</span>
                         </AccordionTrigger>
-                        <div className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity me-4">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenGroupDialog(group)}>
-                                <Edit className="h-4 w-4" />
-                            </Button>
+                        {isManager && (
+                            <div className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity me-4">
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenGroupDialog(group)}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                                
+                                <AlertDialog onOpenChange={(isOpen) => !isOpen && setGroupToDelete(null)}>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" onClick={() => setGroupToDelete(group)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            פעולה זו תמחק את הקבוצה "{groupToDelete?.name}" לצמיתות. לא ניתן לבטל פעולה זו.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>ביטול</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteGroup}>מחק</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             
-                            <AlertDialog onOpenChange={(isOpen) => !isOpen && setGroupToDelete(null)}>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" onClick={() => setGroupToDelete(group)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        פעולה זו תמחק את הקבוצה "{groupToDelete?.name}" לצמיתות. לא ניתן לבטל פעולה זו.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>ביטול</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDeleteGroup}>מחק</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        
-                        </div>
+                            </div>
+                        )}
                       </div>
                     <AccordionContent>
                         <div className="space-y-4 pt-2">
-                            <Button variant="outline" size="sm" className="mb-4" onClick={() => handleOpenAthleteDialog(null, group.id)}>
-                                <UserPlus className="me-2 h-4 w-4" /> הוסף ספורטאי לקבוצה
-                            </Button>
+                            {isManager && (
+                                <Button variant="outline" size="sm" className="mb-4" onClick={() => handleOpenAthleteDialog(null, group.id)}>
+                                    <UserPlus className="me-2 h-4 w-4" /> הוסף ספורטאי לקבוצה
+                                </Button>
+                            )}
                             {(athletesByGroup[group.id] || []).length > 0 ? (
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="text-right">שם פרטי</TableHead>
                                         <TableHead className="text-right">שם משפחה</TableHead>
-                                        <TableHead className="text-right">פעולות</TableHead>
+                                        {isManager && <TableHead className="text-right">פעולות</TableHead>}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -485,30 +498,32 @@ export default function SettingsPage() {
                                     <TableRow key={athlete.id}>
                                         <TableCell>{athlete.firstName}</TableCell>
                                         <TableCell>{athlete.lastName}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpenAthleteDialog(athlete, group.id)}>
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                             <AlertDialog onOpenChange={(isOpen) => !isOpen && setAthleteToDelete(null)}>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" onClick={() => setAthleteToDelete(athlete)}>
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                    <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        פעולה זו תמחק את הספורטאי "{athleteToDelete?.firstName} {athleteToDelete?.lastName}" לצמיתות.
-                                                    </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                    <AlertDialogCancel>ביטול</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={handleDeleteAthlete}>מחק</AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </TableCell>
+                                        {isManager && (
+                                            <TableCell className="text-right">
+                                                <Button variant="ghost" size="icon" onClick={() => handleOpenAthleteDialog(athlete, group.id)}>
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <AlertDialog onOpenChange={(isOpen) => !isOpen && setAthleteToDelete(null)}>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="ghost" size="icon" onClick={() => setAthleteToDelete(athlete)}>
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                        <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            פעולה זו תמחק את הספורטאי "{athleteToDelete?.firstName} {athleteToDelete?.lastName}" לצמיתות.
+                                                        </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                        <AlertDialogCancel>ביטול</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={handleDeleteAthlete}>מחק</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))}
                                 </TableBody>
@@ -524,122 +539,144 @@ export default function SettingsPage() {
             ) : (
                 <div className="text-center py-12 text-muted-foreground">
                     <p>לא נמצאו קבוצות.</p>
-                    <p className="mt-2">לחץ על "הוסף קבוצה חדשה" כדי להתחיל.</p>
+                    {isManager && <p className="mt-2">לחץ על "הוסף קבוצה" כדי להתחיל.</p>}
                 </div>
             )}
           </CardContent>
         </Card>
       </TabsContent>
 
-      <TabsContent value="coaches">
+      <TabsContent value="users">
         <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-                <div>
-                    <CardTitle>ניהול מאמנים</CardTitle>
-                    <CardDescription>הוסף ונהל חשבונות מאמנים.</CardDescription>
-                </div>
-                 <Button onClick={() => handleOpenCoachDialog()}><UserPlus className="me-2 h-4 w-4" />הוסף מאמן</Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-             <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="text-right">שם פרטי</TableHead>
-                        <TableHead className="text-right">שם משפחה</TableHead>
-                        <TableHead className="text-right">פעולות</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {coaches.map(coach => (
-                        <TableRow key={coach.id}>
-                            <TableCell>{coach.firstName}</TableCell>
-                            <TableCell>{coach.lastName}</TableCell>
-                            <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => handleOpenCoachDialog(coach)}><Edit className="h-4 w-4" /></Button>
-                                 <AlertDialog onOpenChange={(isOpen) => !isOpen && setCoachToDelete(null)}>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" onClick={() => setCoachToDelete(coach)}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            פעולה זו תמחק את המאמן "{coachToDelete?.firstName} {coachToDelete?.lastName}" לצמיתות.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>ביטול</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteCoach}>מחק</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-             </Table>
-          </CardContent>
+            {isManager ? (
+                <>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <CardTitle>ניהול משתמשים</CardTitle>
+                            <CardDescription>הוסף ונהל מאמנים ומנהלים.</CardDescription>
+                        </div>
+                        <Button onClick={() => handleOpenUserDialog()}><UserPlus className="me-2 h-4 w-4" />הוסף משתמש</Button>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="text-right">שם</TableHead>
+                                <TableHead className="text-right">תפקיד</TableHead>
+                                <TableHead className="text-right">פעולות</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {coaches.map(user => (
+                                <TableRow key={user.id}>
+                                    <TableCell>{user.firstName} {user.lastName}</TableCell>
+                                    <TableCell>{user.role === 'manager' ? 'מנהל' : 'מאמן'}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => handleOpenUserDialog(user)}><Edit className="h-4 w-4" /></Button>
+                                        <AlertDialog onOpenChange={(isOpen) => !isOpen && setUserToDelete(null)}>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user)}>
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    פעולה זו תמחק את המשתמש "{userToDelete?.firstName} {userToDelete?.lastName}" לצמיתות.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>ביטול</AlertDialogCancel>
+                                                <AlertDialogAction onClick={handleDeleteUser}>מחק</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+                </>
+            ) : (
+                <CardHeader>
+                    <CardTitle>ניהול משתמשים</CardTitle>
+                    <CardContent className="pt-6">
+                        <p className="text-center text-muted-foreground">אין לך הרשאה לצפות בתוכן זה.</p>
+                    </CardContent>
+                </CardHeader>
+            )}
         </Card>
       </TabsContent>
 
       <TabsContent value="reasons">
         <Card>
-          <CardHeader>
-            <CardTitle>ניהול סיבות היעדרות</CardTitle>
-            <CardDescription>הוסף או ערוך סיבות היעדרות מותאמות אישית.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-                <Input 
-                    placeholder="הוסף סיבה חדשה..."
-                    value={newReasonInput}
-                    onChange={(e) => setNewReasonInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddReason()}
-                />
-                <Button onClick={handleAddReason}><PlusCircle className="me-2 h-4 w-4" />הוסף</Button>
-            </div>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>סיבה</TableHead>
-                        <TableHead className="text-left">פעולות</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {absenceReasons.map(reason => (
-                         <TableRow key={reason.id}>
-                            <TableCell>{reason.label}</TableCell>
-                            <TableCell className="text-left">
-                                <Button variant="ghost" size="icon" onClick={() => handleOpenReasonDialog(reason)}><Edit className="h-4 w-4" /></Button>
-                                <AlertDialog onOpenChange={(isOpen) => !isOpen && setReasonToDelete(null)}>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" onClick={() => setReasonToDelete(reason)}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            פעולה זו תמחק את הסיבה "{reasonToDelete?.label}" לצמיתות.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>ביטול</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteReason}>מחק</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-          </CardContent>
+            {isManager ? (
+                <>
+                <CardHeader>
+                    <CardTitle>ניהול סיבות היעדרות</CardTitle>
+                    <CardDescription>הוסף או ערוך סיבות היעדרות מותאמות אישית.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex gap-2">
+                        <Input 
+                            placeholder="הוסף סיבה חדשה..."
+                            value={newReasonInput}
+                            onChange={(e) => setNewReasonInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddReason()}
+                        />
+                        <Button onClick={handleAddReason}><PlusCircle className="me-2 h-4 w-4" />הוסף</Button>
+                    </div>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>סיבה</TableHead>
+                                <TableHead className="text-left">פעולות</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {absenceReasons.map(reason => (
+                                <TableRow key={reason.id}>
+                                    <TableCell>{reason.label}</TableCell>
+                                    <TableCell className="text-left">
+                                        <Button variant="ghost" size="icon" onClick={() => handleOpenReasonDialog(reason)}><Edit className="h-4 w-4" /></Button>
+                                        <AlertDialog onOpenChange={(isOpen) => !isOpen && setReasonToDelete(null)}>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" onClick={() => setReasonToDelete(reason)}>
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    פעולה זו תמחק את הסיבה "{reasonToDelete?.label}" לצמיתות.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>ביטול</AlertDialogCancel>
+                                                <AlertDialogAction onClick={handleDeleteReason}>מחק</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+                </>
+            ) : (
+                 <CardHeader>
+                    <CardTitle>ניהול סיבות היעדרות</CardTitle>
+                    <CardContent className="pt-6">
+                        <p className="text-center text-muted-foreground">אין לך הרשאה לצפות בתוכן זה.</p>
+                    </CardContent>
+                </CardHeader>
+            )}
         </Card>
       </TabsContent>
 
@@ -687,11 +724,11 @@ export default function SettingsPage() {
         </DialogContent>
     </Dialog>
 
-    {/* Coach Edit/Create Dialog */}
-     <Dialog open={isCoachDialogOpen} onOpenChange={handleCloseCoachDialog}>
+    {/* User Edit/Create Dialog */}
+     <Dialog open={isUserDialogOpen} onOpenChange={handleCloseUserDialog}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>{coachToEdit ? 'עריכת פרטי מאמן' : 'הוספת מאמן חדש'}</DialogTitle>
+                <DialogTitle>{userToEdit ? 'עריכת פרטי משתמש' : 'הוספת משתמש חדש'}</DialogTitle>
             </DialogHeader>
             <div className="py-4 grid gap-4">
                 <div className="space-y-2">
@@ -706,10 +743,22 @@ export default function SettingsPage() {
                     <Label htmlFor="coachPhone">טלפון</Label>
                     <Input id="coachPhone" value={newCoachPhone} onChange={(e) => setNewCoachPhone(e.target.value)} placeholder="05... או +972..."/>
                 </div>
+                <div className="space-y-2">
+                    <Label htmlFor="userRole">תפקיד</Label>
+                     <Select dir="rtl" value={newUserRole} onValueChange={(value) => setNewUserRole(value as 'manager' | 'coach')}>
+                        <SelectTrigger id="userRole">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="coach">מאמן</SelectItem>
+                            <SelectItem value="manager">מנהל</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
             <DialogFooter>
-                 <Button variant="outline" onClick={handleCloseCoachDialog}>ביטול</Button>
-                 <Button onClick={handleSaveCoach}>{coachToEdit ? 'שמור שינויים' : 'הוסף מאמן'}</Button>
+                 <Button variant="outline" onClick={handleCloseUserDialog}>ביטול</Button>
+                 <Button onClick={handleSaveUser}>{userToEdit ? 'שמור שינויים' : 'הוסף משתמש'}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
@@ -735,3 +784,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    

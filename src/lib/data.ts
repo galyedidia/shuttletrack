@@ -214,8 +214,8 @@ export async function deleteAthlete(id: string): Promise<void> {
     await deleteDoc(athleteRef);
 }
 
-// --- Coach Management ---
-export async function addCoach(firstName: string, lastName: string, phone: string): Promise<Coach> {
+// --- Coach / User Management ---
+export async function addCoach(firstName: string, lastName: string, phone: string, role: 'manager' | 'coach'): Promise<Coach> {
     // Check for uniqueness
     const q = query(collection(db, "coaches"), where("phone", "==", phone));
     const snapshot = await getDocs(q);
@@ -223,11 +223,11 @@ export async function addCoach(firstName: string, lastName: string, phone: strin
         throw new Error("A coach with this phone number already exists.");
     }
     
-    const docRef = await addDoc(collection(db, 'coaches'), { firstName, lastName, phone });
-    return { id: docRef.id, firstName, lastName, phone };
+    const docRef = await addDoc(collection(db, 'coaches'), { firstName, lastName, phone, role });
+    return { id: docRef.id, firstName, lastName, phone, role };
 }
 
-export async function updateCoach(id: string, data: Partial<Pick<Coach, 'firstName' | 'lastName' | 'phone'>>): Promise<void> {
+export async function updateCoach(id: string, data: Partial<Pick<Coach, 'firstName' | 'lastName' | 'phone' | 'role'>>): Promise<void> {
     const coachRef = doc(db, 'coaches', id);
     await updateDoc(coachRef, data);
 }
@@ -252,3 +252,5 @@ export async function deleteAbsenceReason(id: string): Promise<void> {
     const reasonRef = doc(db, 'absenceReasons', id);
     await deleteDoc(reasonRef);
 }
+
+    
