@@ -355,12 +355,12 @@ export default function ReportsPage() {
                     </Table>
                  </ScrollArea>
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex-row justify-end gap-2">
+                 <Button variant="outline" onClick={() => setIsDetailOpen(false)}>סגור</Button>
                  <Button onClick={handleExport}>
                     <FileDown className="me-2 h-4 w-4" />
                     ייצא לאקסל
                 </Button>
-                 <Button variant="outline" onClick={() => setIsDetailOpen(false)}>סגור</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
