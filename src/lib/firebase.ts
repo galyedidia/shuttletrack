@@ -9,7 +9,7 @@ import { getFirestore } from "firebase/firestore";
 const firebaseConfig = {
   projectId: "shuttletrack-rgjhw",
   appId: "1:179200842382:web:5f46033fbeb7af37b607df",
-  storageBucket: "shuttletrack-rgjhw.firebasestorage.app",
+  storageBucket: "shuttletrack-rgjhw.appspot.com",
   apiKey: "AIzaSyC3JNaoeb_RP2iYdiu0DmNRZC950EQLoT0",
   authDomain: "shuttletrack-rgjhw.firebaseapp.com",
   messagingSenderId: "179200842382",
