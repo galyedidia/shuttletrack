@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
 import { notFound, useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Card,
@@ -37,14 +36,45 @@ import type { AttendanceRecord, Athlete, TrainingSession, Group, AbsenceReason }
 import { Star, Save, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from '@/components/ui/separator';
-
+const ShuttlecockRating = ({ rating, setRating, isReadOnly }: { rating: number, setRating: (rating: number) => void, isReadOnly: boolean }) => {
+  return (
+    <div className="flex flex-row-reverse gap-1">
+      {[5, 4, 3, 2, 1].map((value) => (
+        <div
+          key={value}
+          className={`h-6 w-6 transition-all duration-200 ${
+            isReadOnly ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-110'
+          }`}
+          onClick={() => !isReadOnly && setRating(value)}
+          style={{
+            backgroundColor: rating >= value ? '#818cf8' : '#9ca3af', // Better purple match + darker gray
+            maskImage: `url(${rating >= value ? '/shuttlecock-filled.png' : '/shuttlecock.png'})`,
+            maskSize: 'contain',
+            maskRepeat: 'no-repeat',
+            maskPosition: 'center',
+            WebkitMaskImage: `url(${rating >= value ? '/shuttlecock-filled.png' : '/shuttlecock.png'})`,
+            WebkitMaskSize: 'contain',
+            WebkitMaskRepeat: 'no-repeat',
+            WebkitMaskPosition: 'center'
+          }}
+        />
+      ))}
+    </div>
+  );
+};
 const StarRating = ({ rating, setRating, isReadOnly }: { rating: number, setRating: (rating: number) => void, isReadOnly: boolean }) => {
   return (
     <div className="flex flex-row-reverse gap-1">
       {[5, 4, 3, 2, 1].map((value) => (
         <Star
           key={value}
-          className={`cursor-pointer h-5 w-5 ${rating >= value ? "text-primary fill-primary" : "text-muted-foreground"} ${isReadOnly ? 'cursor-not-allowed' : ''}`}
+          className={`h-5 w-5 transition-all duration-200 ${
+            isReadOnly ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-110'
+          } ${
+            rating >= value 
+              ? "text-primary fill-primary" 
+              : "text-muted-foreground hover:text-primary/50"
+          }`}
           onClick={() => !isReadOnly && setRating(value)}
         />
       ))}
@@ -176,7 +206,27 @@ function AttendancePageContent() {
   };
   
   if (loading) {
-      return <div className="flex h-screen items-center justify-center">טוען נתוני אימון...</div>;
+      return (
+        <div className="space-y-6">
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+            <div className="animate-pulse space-y-4">
+              <div className="h-6 bg-muted rounded w-48"></div>
+              <div className="h-4 bg-muted rounded w-32"></div>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-card border border-border rounded-xl shadow-sm p-5">
+                <div className="animate-pulse space-y-4">
+                  <div className="h-5 bg-muted rounded w-32"></div>
+                  <div className="h-4 bg-muted rounded w-20"></div>
+                  <div className="h-16 bg-muted rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
   }
   
   if (!session) {
@@ -186,12 +236,12 @@ function AttendancePageContent() {
   return (
     <>
     <div className="space-y-6">
-      <Card>
+    <Card className="bg-white border-2 border-gray-200 rounded-xl shadow-md">
         <CardHeader>
-            <CardTitle>רישום נוכחות: {groupName}</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-xl font-bold text-primary">רישום נוכחות: {groupName}</CardTitle>
+            <CardDescription className="flex items-center gap-2 text-sm">
                 {new Date(session.date).toLocaleDateString('he-IL', { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                {isPastSession && <span className="text-destructive font-semibold ms-4">(אימון עבר - צפייה בלבד)</span>}
+                {isPastSession && <span className="text-destructive font-semibold">(אימון עבר - צפייה בלבד)</span>}
             </CardDescription>
         </CardHeader>
       </Card>
@@ -203,56 +253,59 @@ function AttendancePageContent() {
             const isPresent = record.present !== false;
 
             return (
-              <Card key={athlete.id}>
-                <CardHeader>
+              <Card key={athlete.id} className="bg-white border-2 border-gray-200 rounded-xl shadow-md hover:shadow-lg hover:border-primary/30 transition-all duration-300 group">
+                <CardHeader className="pb-4">
                   <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg">{`${athlete.firstName} ${athlete.lastName}`}</CardTitle>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נוכח</Label>
+                    <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
+                      {`${athlete.firstName} ${athlete.lastName}`}
+                    </CardTitle>
+                    <div className="flex items-center gap-3">
+                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm font-medium">נוכח</Label>
                         <Switch
                           id={`attendance-${athlete.id}`}
                           checked={isPresent}
                           onCheckedChange={(checked) => handleAttendanceChange(athlete.id, 'present', checked)}
                           dir="ltr"
                           disabled={isPastSession}
+                          className="data-[state=checked]:bg-primary"
                         />
-                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm">נעדר</Label>
+                        <Label htmlFor={`attendance-${athlete.id}`} className="text-sm text-muted-foreground">נעדר</Label>
                       </div>
                   </div>
                 </CardHeader>
-                <Separator />
-                <CardContent className="pt-6 space-y-4">
+                <Separator className="opacity-50" />
+                <CardContent className="pt-4 space-y-4">
                   {isPresent ? (
                       <>
                       <div className="flex justify-between items-center">
-                        <Label>דירוג אימון</Label>
-                        <StarRating
+                        <Label className="text-sm font-medium">דירוג אימון</Label>
+                        <ShuttlecockRating
                             rating={record.rating || 0}
                             setRating={(rating) => handleAttendanceChange(athlete.id, 'rating', rating)}
                             isReadOnly={isPastSession}
                           />
                       </div>
-                      <div>
+                      <div className="space-y-2">
+                          
                           <Textarea
-                              id={`comment-${athlete.id}`}
                               placeholder={isPastSession ? 'אין הערה' : 'הוסף הערה...'}
                               value={record.comment || ""}
                               onChange={(e) => handleAttendanceChange(athlete.id, 'comment', e.target.value)}
-                              className="mt-1 min-h-[60px]"
+                              className="border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-colors resize-none min-h-[60px]"
                               readOnly={isPastSession}
                           />
                       </div>
                       </>
                   ) : (
-                      <div>
-                          <Label htmlFor={`absence-${athlete.id}`}>סיבת היעדרות</Label>
+                      <div className="space-y-2">
+                          <Label className="text-sm font-medium">סיבת היעדרות</Label>
                           <Select
                             onValueChange={(value) => handleAttendanceChange(athlete.id, 'absenceReason', value)}
                             value={record.absenceReason || ""}
                             disabled={isPastSession}
                             dir="rtl"
                           >
-                            <SelectTrigger id={`absence-${athlete.id}`} className="mt-1">
+                            <SelectTrigger className="border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-colors">
                               <SelectValue placeholder={isPastSession ? 'לא נבחרה סיבה' : 'בחר סיבה'} />
                             </SelectTrigger>
                             <SelectContent>
@@ -269,29 +322,40 @@ function AttendancePageContent() {
           })}
         </div>
       ) : (
-        <Card>
+        <Card className="bg-card border border-border rounded-xl shadow-sm">
             <CardContent className="pt-6">
                 <p className="text-center text-muted-foreground">לא נמצאו ספורטאים המשויכים לאימון זה.</p>
             </CardContent>
         </Card>
       )}
 
-
-      <CardFooter className="flex justify-end sticky bottom-0 bg-background py-4 px-6 border-t gap-2">
-        {!isPastSession && (
-          <Button onClick={handleSave} disabled={!isUnsaved}>
-            <Save className="me-2 h-4 w-4" />
-            שמור נוכחות
+      {/* Sticky Footer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4 z-40">
+        <div className="flex justify-end gap-2 max-w-7xl mx-auto">
+          {!isPastSession && (
+            <Button 
+              onClick={handleSave} 
+              disabled={!isUnsaved}
+              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2"
+            >
+              <Save className="h-4 w-4" />
+              שמור נוכחות
+            </Button>
+          )}
+          <Button 
+            variant="outline" 
+            onClick={handleClose}
+            className="border-2 border-border hover:bg-muted/50 transition-colors flex items-center gap-2"
+          >
+            <XCircle className="h-4 w-4" />
+            סגור
           </Button>
-        )}
-        <Button variant="outline" onClick={handleClose}>
-           <XCircle className="me-2 h-4 w-4" />
-           סגור
-        </Button>
-      </CardFooter>
+        </div>
+      </div>
     </div>
+
     <AlertDialog open={isCloseAlertOpen} onOpenChange={setIsCloseAlertOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card border border-border rounded-xl shadow-xl">
             <AlertDialogHeader>
             <AlertDialogTitle>שינויים שלא נשמרו</AlertDialogTitle>
             <AlertDialogDescription>
@@ -310,7 +374,16 @@ function AttendancePageContent() {
 
 export default function AttendancePage() {
     return (
-        <Suspense fallback={<div>טוען...</div>}>
+        <Suspense fallback={
+          <div className="space-y-6">
+            <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+              <div className="animate-pulse space-y-4">
+                <div className="h-6 bg-muted rounded w-48"></div>
+                <div className="h-4 bg-muted rounded w-32"></div>
+              </div>
+            </div>
+          </div>
+        }>
             <AttendancePageContent />
         </Suspense>
     )

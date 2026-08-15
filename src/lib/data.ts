@@ -18,7 +18,20 @@ export async function hasManagerAccount(): Promise<boolean> {
 }
 
 export async function getCoachByPhone(phone: string): Promise<Coach | null> {
-    const q = query(collection(db, "coaches"), where("phone", "==", phone));
+    const raw = phone.replace(/[^\d+]/g, '');
+    const variations = new Set<string>([phone, raw]);
+    if (raw.startsWith('+972')) {
+        variations.add('0' + raw.substring(4));
+        variations.add(raw.substring(1));
+    } else if (raw.startsWith('972')) {
+        variations.add('+' + raw);
+        variations.add('0' + raw.substring(3));
+    } else if (raw.startsWith('0')) {
+        variations.add('+972' + raw.substring(1));
+        variations.add('972' + raw.substring(1));
+    }
+
+    const q = query(collection(db, "coaches"), where("phone", "in", Array.from(variations).slice(0, 10)));
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
         return null;

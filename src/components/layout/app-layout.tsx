@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -126,6 +125,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       return <>{children}</>;
   }
 
+  const isReports = pathname?.startsWith("/reports");
 
   return (
     <SidebarProvider>
@@ -148,21 +148,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-4 sm:px-6">
-          <div className="flex items-center gap-4">
-            <SidebarTrigger />
+        {/* Enhanced header with improved styling */}
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6 min-w-0" dir="rtl">
+          <div className="flex items-center gap-4 shrink-0 order-1 sm:order-1">
+            <SidebarTrigger className="shrink-0 text-cyan-500 hover:text-cyan-600 border-0 [&>svg]:h-6 [&>svg]:w-6" data-sidebar-trigger />
           </div>
-          <div className="absolute left-1/2 -translate-x-1/2">
-             <Link href="/">
-                <AppLogo className="h-8 w-8 text-primary" />
-                <span className="sr-only">Home</span>
+          <div className="absolute left-1/2 -translate-x-1/2 order-2">
+            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <AppLogo className="h-12 w-12 rounded-xl" />
+              <span className="font-bold text-xl text-cyan-500 hidden sm:block">ShuttleTrack</span>
             </Link>
           </div>
-           <div className="flex items-center gap-4">
-             <span className="font-semibold">{coachName?.split(' ')[0]}</span>
-           </div>
+          <div className="flex items-center gap-4 shrink-0 order-3 sm:order-3">
+            <span className="font-semibold text-lg truncate max-w-[40vw] text-right text-cyan-500">
+              {coachName?.split(' ')[0]}
+            </span>
+          </div>
         </header>
-        <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <main key={pathname} className="flex-1 p-4 sm:p-6">
+          <div className={isReports ? "w-full overflow-x-hidden reports-page-container" : undefined}>
+            {children}
+          </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

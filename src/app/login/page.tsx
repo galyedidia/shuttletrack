@@ -26,37 +26,49 @@ export default function LoginPage() {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
+  // Normalize Israeli / International phone numbers to clean E.164 format
+  const formatPhoneNumber = (phone: string) => {
+    const raw = phone.replace(/[^\d+]/g, '');
+    if (raw.startsWith('+')) return raw;
+    if (raw.startsWith('0')) return `+972${raw.substring(1)}`;
+    if (raw.startsWith('972')) return `+${raw}`;
+    return `+972${raw}`;
+  };
+
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
+        const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
         const verifier = getRecaptchaVerifier('recaptcha-container');
         if (!verifier) {
-            throw new Error("Could not create reCAPTCHA verifier");
+            throw new Error("לא ניתן לאתחל את שירות האבטחה (reCAPTCHA)");
         }
-        // Firebase requires the phone number in E.164 format (e.g., +972501234567)
-        // We assume Israeli numbers if no country code is provided.
-        const formattedPhoneNumber = phoneNumber.startsWith('+') ? phoneNumber : `+972${phoneNumber.substring(1)}`;
         
+        if (!auth) {
+            throw new Error("שירות האימות אינו זמין כעת");
+        }
         const result = await signInWithPhoneNumber(auth, formattedPhoneNumber, verifier);
         setConfirmationResult(result);
         toast({
             title: "קוד אימות נשלח",
-            description: "אנא הזן את הקוד שקיבלת ב-SMS.",
+            description: `קוד אימות נשלח למספר ${formattedPhoneNumber}. אנא הזן את הקוד.`,
         });
     } catch (error: any) {
         console.error("Error sending OTP", error);
+        let errorDescription = error.message;
+        if (error.code === 'auth/invalid-app-credential') {
+            errorDescription = "שגיאת אימות הגדרות (auth/invalid-app-credential). יש לוודא שהאימות באמצעות טלפון מופעל ב-Firebase ושדומיין localhost מורשה.";
+        } else if (error.code === 'auth/quota-exceeded') {
+            errorDescription = "הגעת למגבלת ה-SMS של הפרויקט ב-Firebase.";
+        } else if (error.code === 'auth/invalid-phone-number') {
+            errorDescription = "מספר הטלפון שהוזן אינו בפורמט תקין.";
+        }
         toast({
             title: "שגיאה בשליחת הקוד",
-            description: error.message,
+            description: errorDescription,
             variant: "destructive",
         });
-        // Reset reCAPTCHA
-        if ((window as any).recaptchaVerifier) {
-            (window as any).recaptchaVerifier.render().then((widgetId: any) => {
-                grecaptcha.reset(widgetId);
-            });
-        }
     } finally {
       setIsLoading(false);
     }
@@ -68,7 +80,6 @@ export default function LoginPage() {
       setIsLoading(true);
       try {
         await confirmationResult.confirm(otp);
-        router.push('/');
       } catch (error: any) {
         console.error("Error verifying OTP", error);
         toast({

@@ -4,77 +4,201 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 224 10% 10%;
-
-    --card: 173 60% 97%; /* Very light teal for card background */
-    --card-foreground: 224 10% 10%;
-
+    /* Modern Light Theme */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 224 10% 10%;
-
-    --primary: 173 80% 40%; /* Strong Teal */
-    --primary-foreground: 173 20% 98%;
-
-    --secondary: 210 15% 94%;
-    --secondary-foreground: 224 8% 25%;
-
-    --muted: 210 15% 94%;
-    --muted-foreground: 224 5% 45%;
-
-    --accent: 210 15% 94%;
-    --accent-foreground: 224 8% 25%;
-
+    --popover-foreground: 240 10% 3.9%;
+    
+    /* Modern Purple-Blue Primary */
+    --primary: 234 89% 74%;
+    --primary-foreground: 0 0% 100%;
+    --primary-muted: 234 89% 85%;
+    
+    /* Professional Secondary */
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-
-    --border: 210 10% 88%;
-    --input: 210 10% 88%;
-    --ring: 173 80% 40%;
     
-    --radius: 0.5rem;
+    /* Subtle borders */
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 234 89% 74%;
     
-    --chart-1: 173 80% 40%;
-    --chart-2: 205 70% 45%;
-    --chart-3: 35 92% 55%;
-    --chart-4: 280 80% 60%;
-    --chart-5: 200 80% 55%;
+    --radius: 0.75rem;
+    
+    /* Modern chart colors */
+    --chart-1: 234 89% 74%;
+    --chart-2: 217 91% 60%;
+    --chart-3: 142 76% 36%;
+    --chart-4: 25 95% 53%;
+    --chart-5: 310 65% 60%;
   }
 
   .dark {
-    --background: 224 10% 10%;
-    --foreground: 210 20% 98%;
-
-    --card: 224 10% 12%; /* Darker card for dark mode */
-    --card-foreground: 210 20% 98%;
-
-    --popover: 224 10% 10%;
-    --popover-foreground: 210 20% 98%;
-
-    --primary: 173 75% 48%;
-    --primary-foreground: 173 20% 98%;
-
-    --secondary: 224 8% 15%;
-    --secondary-foreground: 210 20% 98%;
-
-    --muted: 224 8% 15%;
-    --muted-foreground: 210 15% 65%;
-
-    --accent: 224 8% 15%;
-    --accent-foreground: 210 20% 98%;
-
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    
+    --card: 240 10% 5.9%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 234 89% 74%;
+    --primary-foreground: 240 5.9% 10%;
+    --primary-muted: 234 89% 85%;
+    
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-
-    --border: 224 8% 20%;
-    --input: 224 8% 15%;
-    --ring: 173 75% 48%;
     
-    --chart-1: 173 75% 48%;
-    --chart-2: 205 70% 50%;
-    --chart-3: 40 90% 58%;
-    --chart-4: 280 85% 65%;
-    --chart-5: 200 85% 60%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 234 89% 74%;
+  }
+}
+
+/* Modern card animations and effects */
+@layer components {
+  .modern-card {
+    @apply bg-card border border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-200;
+  }
+  
+  .modern-card:hover {
+    @apply bg-muted/50;
+  }
+  
+  .gradient-card {
+    @apply bg-gradient-to-br from-card to-card/50 border border-border/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300;
+  }
+  
+  .training-session-card {
+    @apply modern-card border-l-4 border-l-primary;
+  }
+  
+  .training-session-card:hover {
+    @apply border-l-primary/70 scale-[1.02] active:scale-[0.98];
+  }
+  
+  .athlete-card {
+    @apply gradient-card hover:shadow-primary/20 group;
+  }
+  
+  .floating-button {
+    @apply fixed bottom-6 end-6 z-50 h-14 w-14 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 bg-primary hover:bg-primary/90;
+  }
+  
+  /* Status badges */
+  .status-present {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+  }
+  
+  .status-absent {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400;
+  }
+  
+  /* Modern buttons */
+  .btn-modern {
+    @apply bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium rounded-lg transition-all duration-200 hover:scale-105 active:scale-95;
+  }
+  
+  /* Enhanced star rating */
+  .star-rating {
+    @apply flex flex-row-reverse gap-1;
+  }
+  
+  .star-rating .star {
+    @apply cursor-pointer h-5 w-5 transition-all duration-200;
+  }
+  
+  .star-rating .star:hover {
+    @apply scale-110;
+  }
+  
+  .star-rating .star.filled {
+    @apply text-primary fill-primary;
+  }
+  
+  .star-rating .star.empty {
+    @apply text-muted-foreground;
+  }
+  
+  /* Modern form elements */
+  .modern-input {
+    @apply border border-border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors;
+  }
+  
+  .modern-textarea {
+    @apply modern-input resize-none min-h-[60px];
+  }
+  
+  .modern-select {
+    @apply modern-input;
+  }
+  
+  /* Attendance progress pills */
+  .attendance-pill {
+    @apply relative inline-flex items-center rounded-full ring-1 ring-emerald-300 bg-emerald-50 text-emerald-900 px-3 py-1 min-w-[80px] overflow-hidden;
+  }
+  
+  .attendance-pill-fill {
+    @apply absolute inset-y-0 end-0 bg-emerald-200 rounded-full transition-all duration-300;
+  }
+  
+  .attendance-pill-text {
+    @apply relative z-10 text-sm font-semibold;
+  }
+  
+  .attendance-pill-subtext {
+    @apply relative z-10 text-xs text-emerald-700 ms-1;
+  }
+  
+  /* Modern switch styling */
+  .modern-switch[data-state="checked"] {
+    @apply bg-primary;
+  }
+  
+  /* Enhanced table styles */
+  .modern-table {
+    @apply w-full;
+  }
+  
+  .modern-table th {
+    @apply text-start py-3 px-4 font-semibold text-muted-foreground border-b border-border;
+  }
+  
+  .modern-table td {
+    @apply py-3 px-4 border-b border-border/50;
+  }
+  
+  .modern-table tr:hover {
+    @apply bg-muted/50 transition-colors;
+  }
+  
+  /* Enhanced dialog styles */
+  .modern-dialog {
+    @apply bg-card border border-border rounded-xl shadow-xl;
   }
 }
 
@@ -89,4 +213,126 @@
   .day-with-session {
     @apply bg-secondary text-secondary-foreground font-bold;
   }
+}
+
+/* Enhanced RTL Support for Mobile */
+html[dir="rtl"] {
+  direction: rtl;
+}
+
+/* Fix for RTL dialogs on mobile */
+html[dir="rtl"] [role="dialog"] {
+  direction: rtl;
+}
+
+/* Ensure proper RTL behavior for mobile viewport */
+@media (max-width: 640px) {
+  html[dir="rtl"] body {
+    direction: rtl;
+  }
+  
+  /* Fix sidebar trigger positioning on mobile RTL */
+  html[dir="rtl"] .sidebar-trigger {
+    right: auto;
+    left: 1rem;
+  }
+  
+  /* Fix dialog positioning on mobile RTL */
+  html[dir="rtl"] [data-radix-dialog-content] {
+    transform: translate(-50%, -50%);
+    right: auto !important;
+    left: 50% !important;
+  }
+  
+  /* Modern card mobile optimizations */
+  .modern-card {
+    @apply rounded-lg;
+  }
+  
+  .training-session-card {
+    @apply border-l-2;
+  }
+  
+  .floating-button {
+    @apply h-12 w-12;
+  }
+}
+
+/* Flip Radix/RemoveScroll padding in RTL while LOCKED */
+html[dir="rtl"] body[data-radix-scroll-lock],
+html[dir="rtl"] body[data-radix-scroll-lock-padding-right],
+html[dir="rtl"] body.with-scroll-bars-hidden {
+  --rsb: var(--removed-body-scroll-bar-size, var(--removed-scroll-bar-size, 0px));
+  padding-left: var(--rsb) !important;
+  padding-right: 0 !important;
+}
+
+/* Phones: no compensation at all but ensure proper RTL */
+@media (max-width: 640px) {
+  html[dir="rtl"] body[data-radix-scroll-lock],
+  html[dir="rtl"] body[data-radix-scroll-lock-padding-right],
+  html[dir="rtl"] body.with-scroll-bars-hidden {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  /* Ensure reports page container doesn't overflow */
+  .reports-page-container {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+}
+
+/* Additional mobile RTL fixes */
+@media (max-width: 640px) {
+  /* Fix for sidebar inset on mobile RTL */
+  html[dir="rtl"] [data-sidebar="inset"] {
+    margin-right: 0;
+    margin-left: 0;
+  }
+  
+  /* Ensure proper header alignment on mobile RTL */
+  html[dir="rtl"] header {
+    direction: rtl;
+  }
+  
+  /* Fix trigger button positioning */
+  html[dir="rtl"] [data-sidebar-trigger] {
+    margin-right: auto;
+    margin-left: 0;
+  }
+}
+
+/* Prevent table overflow on mobile */
+@media (max-width: 640px) {
+  .reports-page-container table {
+    width: 100%;
+    table-layout: fixed;
+  }
+  
+  .reports-page-container td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}
+
+/* Modern loading states */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.loading-shimmer {
+  background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted-foreground))/10% 50%, hsl(var(--muted)) 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+[data-sidebar-trigger] svg {
+  height: 1.5rem !important;
+  width: 1.5rem !important;
 }

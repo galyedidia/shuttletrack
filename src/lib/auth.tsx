@@ -6,7 +6,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from './firebase';
 import { useRouter, usePathname } from 'next/navigation';
-import { getCoachByPhone, hasManagerAccount } from './data';
+import { getCoachByPhone, hasManagerAccount, addCoach, updateCoach } from './data';
 import type { Coach } from '@/types';
 
 interface AuthContextType {
@@ -28,6 +28,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && user.phoneNumber) {
         setUser(user);
@@ -35,24 +39,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const systemHasManager = await hasManagerAccount();
 
         if (!systemHasManager) {
-            // BOOTSTRAP: If no manager exists in the system, this user becomes the temporary manager
-            // to allow them to create the first manager account (themselves).
-            setRole('manager');
-            const coach = await getCoachByPhone(user.phoneNumber);
-            setCoachName(coach ? `${coach.firstName} ${coach.lastName}` : "מנהל מערכת");
+          let coach = await getCoachByPhone(user.phoneNumber);
+        
+          if (!coach) {
+            // Create a coach doc for this user as a manager
+            const [first, ...rest] = (user.displayName || "מנהל מערכת").split(" ");
+            await addCoach(first || "מנהל", rest.join(" ") || "מערכת", user.phoneNumber, "manager");
+            coach = await getCoachByPhone(user.phoneNumber);
+          } else if (coach.role !== "manager") {
+            // Promote existing coach to manager if needed
+            await updateCoach(coach.id, { role: "manager" });
+          }
+        
+          setCoachName(coach ? `${coach.firstName} ${coach.lastName}` : "מנהל מערכת");
+          setRole("manager");
         } else {
-            // Normal operation: fetch the user's record and role from the DB.
-            const coach = await getCoachByPhone(user.phoneNumber);
-            if (coach) {
-                setCoachName(`${coach.firstName} ${coach.lastName}`);
-                setRole(coach.role);
-            } else {
-                // This case handles a user who is authenticated with Firebase
-                // but doesn't have a record in the 'coaches' collection.
-                // They are treated as a non-privileged user.
-                setCoachName("משתמש לא רשום");
-                setRole(null); // Or 'guest', effectively blocking access to everything.
-            }
+          // Normal operation
+          const coach = await getCoachByPhone(user.phoneNumber);
+          if (coach) {
+            setCoachName(`${coach.firstName} ${coach.lastName}`);
+            setRole(coach.role);
+          } else {
+            setCoachName("משתמש לא רשום");
+            setRole(null);
+          }
         }
 
       } else {
@@ -67,18 +77,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user && pathname !== '/login') {
-      router.push('/login');
+    if (loading) return;
+  
+    const onLogin = pathname === "/login";
+  
+    // Not signed in → allow only /login
+    if (!user) {
+      if (!onLogin) router.replace("/login");
+      return;
     }
-     // If a logged-in user without a role tries to access anything, send them to login.
-     // This handles the case of a user deleted from the DB but still has a valid Firebase session.
-    if (!loading && user && !role && pathname !== '/login') {
-      router.push('/login');
-    }
-  }, [user, loading, pathname, router, role]);
+    
+    // Signed in with a role → never stay on /login
+    if (onLogin) router.replace("/");
+  }, [loading, user, pathname, router]);  
   
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    if (auth) {
+      await firebaseSignOut(auth);
+    }
     router.push('/login');
   };
 

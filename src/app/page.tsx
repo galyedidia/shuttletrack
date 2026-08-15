@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
@@ -226,34 +225,36 @@ function SessionsDashboard() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="items-center">
-            <div className="flex flex-col items-center gap-4">
-                <CardTitle>ניהול אימונים</CardTitle>
-                <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className="w-[280px] justify-center text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, "PPP") : <span>בחר תאריך</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={handleDateSelect}
-                      initialFocus
-                      modifiers={{ withSession: sessionDates }}
-                      modifiersClassNames={{ withSession: 'day-with-session' }}
-                    />
-                  </PopoverContent>
-                </Popover>
-            </div>
-        </CardHeader>
-      </Card>
+      <Card className="bg-gradient-to-br from-card to-card/80 border border-border/50 rounded-xl shadow-sm">
+  <CardHeader className="items-center">
+    <div className="flex flex-col items-center gap-4">
+    <CardTitle className="text-2xl font-bold text-primary">
+        ניהול אימונים
+      </CardTitle>
+      <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant={"outline"}
+            className="w-[280px] justify-center text-left font-normal border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
+          >
+            <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+            {selectedDate ? format(selectedDate, "PPP") : <span>בחר תאריך</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0 border border-border rounded-xl shadow-xl">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={handleDateSelect}
+            initialFocus
+            modifiers={{ withSession: sessionDates }}
+            modifiersClassNames={{ withSession: 'day-with-session' }}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  </CardHeader>
+</Card>
 
       {filteredSessions.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -265,20 +266,29 @@ function SessionsDashboard() {
             const canDelete = isToday;
 
             return (
-              <Card key={session.id} className="border-l-4 border-primary bg-card">
-                <CardHeader>
+              <Card key={session.id} className="border-l-4 border-primary bg-card rounded-xl shadow-sm hover:shadow-md transition-all duration-200 group">
+                <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle>{group?.name}</CardTitle>
-                        <CardDescription>
+                    <div className="space-y-1">
+                        <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
+                          {group?.name}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-2 text-sm">
+                            <CalendarIcon className="h-4 w-4" />
                             {new Date(session.date + 'T00:00:00').toLocaleDateString('he-IL')}
-                            {creationTime && <span className="ms-2 font-mono text-xs">({creationTime})</span>}
+                            {creationTime && (
+                              <span className="text-xs font-mono opacity-70">({creationTime})</span>
+                            )}
                         </CardDescription>
                     </div>
                     {canDelete && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="opacity-55 group-hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity h-8 w-8 text-destructive hover:bg-destructive/10"
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                           </AlertDialogTrigger>
@@ -298,15 +308,21 @@ function SessionsDashboard() {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="flex items-center justify-between">
-                  <div className="flex items-center text-muted-foreground">
-                    <Users className="me-2 h-4 w-4" />
-                    <span>{athleteCount} ספורטאים</span>
+                <CardContent className="pt-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span className="text-sm font-medium">{athleteCount} ספורטאים</span>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleSessionNavigation(session.id)}
+                      className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 h-8 px-3 text-sm flex items-center gap-1"
+                    >
+                      {isPast ? <Eye className="h-3 w-3" /> : <Edit className="h-3 w-3" />}
+                      {isPast ? 'הצג' : 'ערוך'}
+                    </Button>
                   </div>
-                  <Button size="sm" onClick={() => handleSessionNavigation(session.id)}>
-                    {isPast ? <Eye className="me-2 h-4 w-4" /> : <Edit className="me-2 h-4 w-4" />}
-                    {isPast ? 'הצג' : 'ערוך'}
-                  </Button>
                 </CardContent>
               </Card>
             );
@@ -323,8 +339,8 @@ function SessionsDashboard() {
       {isToday && (
          <Dialog>
             <DialogTrigger asChild>
-                 <Button className="fixed bottom-6 end-6 rounded-full h-16 w-16 shadow-lg">
-                    <PlusCircle className="h-8 w-8" />
+                 <Button className="fixed bottom-6 end-6 z-50 h-14 w-14 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 bg-primary hover:bg-primary/90">
+                    <PlusCircle className="h-6 w-6" />
                     <span className="sr-only">צור אימון חדש</span>
                 </Button>
             </DialogTrigger>
@@ -349,7 +365,13 @@ function SessionsDashboard() {
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
-                        <Button onClick={handleCreateSession} disabled={!newSessionGroupId}>צור אימון</Button>
+                        <Button 
+                          onClick={handleCreateSession} 
+                          disabled={!newSessionGroupId}
+                          className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                        >
+                          צור אימון
+                        </Button>
                     </DialogClose>
                 </DialogFooter>
             </DialogContent>
@@ -367,11 +389,3 @@ export default function SessionsDashboardPage() {
         </Suspense>
     )
 }
-
-    
-
-    
-
-    
-
-    
